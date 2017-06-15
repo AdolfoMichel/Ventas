@@ -92,6 +92,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     DefaultComboBoxModel model;
     JComboBox cmbCliente;
     JButton btnNuevoCliente = new JButton("Agregar Nuevo");
+    JButton btnModificarCliente = new JButton("Modificar");
     
     JLabel lblRecibido = new JLabel("Material Recibido");
     JCheckBox chkRecibido = new JCheckBox();
@@ -179,6 +180,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlPrimero.add(lblCliente);
         pnlPrimero.add(cmbCliente);
         pnlPrimero.add(btnNuevoCliente);
+        pnlPrimero.add(btnModificarCliente);
         cmbCliente.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth()/2, 30));
         
         JPanel pnlOrdenes = new JPanel(new GridLayout(3,1));
@@ -337,6 +339,14 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         btnEliminarOrdenGINSATEC.addActionListener(this);
         btnAgregarFolio.addActionListener(this);
         btnEliminarFolio.addActionListener(this);
+        btnModificarCliente.addActionListener(this);
+        
+        this.addWindowListener(new WindowAdapter(){
+            public void windowClosing(WindowEvent e)
+            {
+                ventas.actualizarFiltro();
+            }
+        });
         
         this.setVisible(true);
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -638,6 +648,26 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     id = consulta.getInt("max") + 1;
                 }
                 sql = "insert into clientes values(" + id + ",'" + cliente + "')";
+                comando.executeUpdate(sql);
+                comando.close();
+                c.close();
+            }
+            catch(Exception ex){
+                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    
+    public void modificarCliente(String clienteViejo, String clienteNuevo){
+        Connection c = ConectarDB();
+        Statement comando = null;
+        if( c == null ){
+            JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
+        }
+        else{
+            try{
+                comando = c.createStatement();
+                String sql = "update clientes set cliente='" + clienteNuevo + "' where cliente='" + clienteViejo + "'";
                 comando.executeUpdate(sql);
                 comando.close();
                 c.close();
@@ -1228,7 +1258,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     public void actionPerformed(ActionEvent ae) {
         Object accion = ae.getSource();
         if(accion == btnGuardar){
-            if(!cmbCliente.getSelectedItem().equals(null)){
+            if(cmbCliente.getSelectedItem().equals("")){
                 JOptionPane.showMessageDialog(null, "El campo CLIENTE no debe estar vacio");
             }
             else if(!validarCampo(txtImporte, "float")){
@@ -1319,12 +1349,65 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     JOptionPane.INFORMATION_MESSAGE);
             if(cliente != null){
                 cliente = cliente.toUpperCase();
-                nuevoCliente(cliente);
-                opcionesCliente.add(cliente);
-                model = new DefaultComboBoxModel(opcionesCliente);
-                cmbCliente.setModel(model);
-                ventas.filtrosCliente.add(cliente);
-                ventas.actualizarFiltro();
+                boolean iguales = false;
+                for(int i = 0; i < opcionesCliente.size(); i++){
+                    if(opcionesCliente.get(i).equals(cliente)){
+                        iguales = true;
+                    }
+                }
+                
+                if(cliente.equals("")){
+                    JOptionPane.showMessageDialog(null, "No es un nombre de cliente valido");
+                }
+                else if(iguales){
+                    JOptionPane.showMessageDialog(null, "El cliente ya existe");
+                }
+                else{
+                    nuevoCliente(cliente);
+                    opcionesCliente.add(cliente);
+                    model = new DefaultComboBoxModel(opcionesCliente);
+                    cmbCliente.setModel(model);
+                    ventas.filtrosCliente.add(cliente);
+                    ventas.actualizarFiltro();
+                }
+            }
+        }
+        else if(accion == btnModificarCliente){
+            if(cmbCliente.getSelectedItem().equals("")){
+                JOptionPane.showMessageDialog(null, "No has seleccionado un cliente");
+            }
+            else{
+                String cliente = JOptionPane.showInputDialog(
+                    this, 
+                    "Nuevo nombre del nuevo cliente:", 
+                    "Modificar Cliente", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                if(cliente != null){
+                    cliente = cliente.toUpperCase();
+                    boolean iguales = false;
+                    for(int i = 0; i < opcionesCliente.size(); i++){
+                        if(opcionesCliente.get(i).equals(cliente)){
+                            iguales = true;
+                        }
+                    }
+
+                    if(cliente.equals("")){
+                        JOptionPane.showMessageDialog(null, "No es un nombre de cliente valido");
+                    }
+                    else if(iguales){
+                        JOptionPane.showMessageDialog(null, "El cliente ya existe");
+                    }
+                    else{
+                        modificarCliente(String.valueOf(cmbCliente.getSelectedItem()), cliente);
+                        ventas.filtrosCliente.remove(cmbCliente.getSelectedItem());
+                        ventas.filtrosCliente.add(cliente);
+                        ventas.actualizarFiltro();
+                        opcionesCliente.remove(cmbCliente.getSelectedItem());
+                        opcionesCliente.add(cliente);
+                        model = new DefaultComboBoxModel(opcionesCliente);
+                        cmbCliente.setModel(model);
+                    }
+                }
             }
         }
         else if(accion == btnArchivoOrdenCompra){

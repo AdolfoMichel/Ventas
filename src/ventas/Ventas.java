@@ -172,6 +172,13 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         cmbOpcionesAnio.addActionListener(this);
         cmbOpcionesExtra.addActionListener(this);
         
+        this.addWindowListener(new WindowAdapter(){
+            public void windowClosing(WindowEvent e)
+            {
+                new Servidor().cerrarServidor();
+            }
+        });
+        
         this.setVisible(true);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }

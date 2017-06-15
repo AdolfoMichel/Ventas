@@ -14,6 +14,7 @@ import javax.swing.*;
 public class Login extends JFrame implements ActionListener{
 
     int usuario;
+    boolean servidor = false;
     
     JLabel lblTitulo = new JLabel("Login");
     JLabel lblUser = new JLabel("Usuario:");
@@ -47,6 +48,14 @@ public class Login extends JFrame implements ActionListener{
         
         btnEntrar.addActionListener(this);
         txtPass.addActionListener(this);
+        this.addWindowListener(new WindowAdapter(){
+            public void windowClosing(WindowEvent e)
+            {
+                if(servidor){
+                    new Servidor().cerrarServidor();
+                }
+            }
+        });
         
         this.setVisible(true);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -97,6 +106,8 @@ public class Login extends JFrame implements ActionListener{
     }
     
     public Connection ConectarDB(){
+        new Servidor().arrancarServidor();
+        servidor = true;
         Connection c = null;
         try {
             Class.forName("org.postgresql.Driver"); //jdbc:postgresql://localhost:5432/sistemabasedatos
