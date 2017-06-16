@@ -353,6 +353,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     }
     
     public Connection ConectarDB(){
+        new Servidor().arrancarServidor();
         Connection c = null;
         try {
             Class.forName("org.postgresql.Driver"); //jdbc:postgresql://localhost:5432/sistemabasedatos

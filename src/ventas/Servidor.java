@@ -21,10 +21,12 @@ public class Servidor {
             //builder.directory(new File("C:\\Users\\Sersitec-Laboratorio\\Documents\\NetBeansProjects\\VentasV2\\src\\ventas"));
             builder.directory(new File(System.getProperty("user.dir") + "\\src\\BatchFiles"));
             Process p = builder.start();
-            
+            p.waitFor();
         }
         catch(IOException ex){
             Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Servidor.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
