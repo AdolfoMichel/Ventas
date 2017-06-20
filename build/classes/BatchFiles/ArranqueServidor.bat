@@ -1,5 +1,6 @@
-cd c:\PostgreSQL\pg95\bin
 
-set pgport=5344
+set pgdata=\\192.168.110.1\servicio\Prueba DB
 
-pg_ctl -D c:\ServidorDB start
+set pgport=3389
+
+pg_ctl start

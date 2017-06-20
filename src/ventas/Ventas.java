@@ -281,10 +281,12 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     }
     
     public Connection ConectarDB(){
+        //new Servidor().arrancarServidor();
         Connection c = null;
         try {
             Class.forName("org.postgresql.Driver"); //jdbc:postgresql://localhost:5432/sistemabasedatos
-            c = DriverManager.getConnection("jdbc:postgresql://localhost:5344/SistemaBaseDatos", "Sersitec-Laboratorio", "");
+            //c = DriverManager.getConnection("jdbc:postgresql://localhost:5344/SistemaBaseDatos", "Sersitec-Laboratorio", "");
+            c = DriverManager.getConnection("jdbc:postgresql://localhost:3389/VentasDB", "usuario", "Sersitec886");
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println(e.getClass().getName()+": "+e.getMessage());

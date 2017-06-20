@@ -353,10 +353,12 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     }
     
     public Connection ConectarDB(){
+        //new Servidor().arrancarServidor();
         Connection c = null;
         try {
             Class.forName("org.postgresql.Driver"); //jdbc:postgresql://localhost:5432/sistemabasedatos
-            c = DriverManager.getConnection("jdbc:postgresql://localhost:5344/SistemaBaseDatos", "Sersitec-Laboratorio", "");
+            //c = DriverManager.getConnection("jdbc:postgresql://localhost:5344/SistemaBaseDatos", "Sersitec-Laboratorio", "");
+            c = DriverManager.getConnection("jdbc:postgresql://localhost:3389/VentasDB", "usuario", "Sersitec886");
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println(e.getClass().getName()+": "+e.getMessage());
@@ -1233,7 +1235,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
             f.OrdenCompraGINSATEC = "";
             f.FechaOrdenCompraGINSATEC = "";
             for(int i = 0; i < dlmOrdenGINSATEC.size(); i++){
-                f.OrdenCompraGINSATEC += hstFechaOrdenGINSATEC.get(dlmOrdenGINSATEC.get(i)) + "-";
+                f.FechaOrdenCompraGINSATEC += hstFechaOrdenGINSATEC.get(dlmOrdenGINSATEC.get(i)) + "-";
                 f.OrdenCompraGINSATEC += dlmOrdenGINSATEC.get(i) + "-";
             }
             f.FolioServicio = "";
@@ -1332,6 +1334,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     else{
                         ventas.modeloMostrar.modificar(folio, f);
                         ventas.tcaMostrar.adjustColumns();
+                        System.out.println("Agregar a mostrar");
                     }
                     this.dispose();
                 }
