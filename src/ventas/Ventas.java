@@ -27,13 +27,13 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     TableColumnAdjuster tcaRegistrar;
     
     String[] columnasRegistrar = {"ID", "Fecha Autorización", "Orden de Compra", "Cotización", "Folio Servicio",
-        "Cliente", "Fecha Orden GINSATEC", "Orden de compra GINSATEC", "Fecha Aproximada Entrega",
+        "Nombre Comercial", "Razón Social", "Concepto de Venta", "Fecha Orden GINSATEC", "Orden de compra GINSATEC", "Fecha Aproximada Entrega",
         "Fecha Recibido", "Material Recibido", "Requiere Instalación", "Requiere Canalización",
         "Fecha Factura", "Factura", "Vendedor", "Importe", "ImportePendiente", "ImporteFacturado", "Tipo Moneda", 
         "Tasa de cambio", "GM", "Días de Credito", "Fecha Vencimiento Pago", "Status", "Notas"};
     
     String[] columnasMostrar = {"ID", "Fecha Autorización", "Orden de Compra", "Cotización", "Folio Servicio",
-        "Cliente", "Fecha Orden GINSATEC", "Orden de compra GINSATEC", "Fecha Aproximada Entrega",
+        "Nombre Comercial", "Razón Social", "Concepto de Venta", "Fecha Orden GINSATEC", "Orden de compra GINSATEC", "Fecha Aproximada Entrega",
         "Fecha Recibido", "Material Recibido", "Requiere Instalación", "Requiere Canalización",
         "Fecha Factura", "Factura", "Vendedor", "Importe", "ImportePendiente", "ImporteFacturado", "Tipo Moneda", 
         "Tasa de cambio", "GM", "Días de Credito", "Fecha Vencimiento Pago", "Status", "Notas", "Capturó"};
@@ -41,10 +41,11 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     int minYear = 0;
     WaitWindow window;
     
-    String[] filtros = {"Sin Filtro", "Mes", "Trimestre", "Año", "Vendedor-Mensual", "Vendedor-Trimestral", "Vendedor-Anual", "Vendedor", "Cliente-Mensual", "Cliente-Trimestral", "Cliente-Anual", "Cliente", "Status"};
+    String[] filtros = {"Sin Filtro", "Mes", "Trimestre", "Año", "Vendedor-Mensual", "Vendedor-Trimestral", "Vendedor-Anual", "Vendedor", "Cliente-Mensual", "Cliente-Trimestral", "Cliente-Anual", "Cliente", "Status", "Concepto de Venta"};
     String[] filtrosMes = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
     String[] filtrosTrimestre = {"Enero-Marzo", "Abril-Junio", "Julio-Septiembre", "Octubre-Diciembre"};
     String[] filtrosStatus = {"Pendiente", "Activa", "Pagada", "No pagada", "Cancelada"};
+    String[] filtrosConcepto = {"Sistemas", "Servicio-Administración", "Servicio-Ventas", "Poliza-Administración", "Poliza-Ventas", "Refacciones-Administración", "Refacciones-Ventas", "Reparaciones-Administración", "Reparaciones-Ventas"};
     Vector<String> filtrosVendedor; // = {"Mario Gonzalez", "Marco Padilla", "Daniel Martinez", "Rosario Arellano", "Alberto Lomeli", "Mariano Ruiz"};
     Vector<String> filtrosAnio;
     Vector<String> filtrosCliente;
@@ -92,7 +93,7 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     
     JPanel pnlTotales = new JPanel(new GridLayout(3,6,50,0));
 
-    Ventas(int idUser, WaitWindow w){
+    Ventas(int idUser, String rol, WaitWindow w){
         super("Registro de Ventas");
         this.setSize(800,600);
     	this.setLocationRelativeTo(null);
@@ -100,6 +101,29 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
 
         idUsuario = idUser;
         window = w;
+        
+        if(rol.equals("admin")){
+            inicializarAdmin();
+        }
+        else if(rol.equals("administracion")){
+            inicializarAdministrador();
+        }
+        else if(rol.equals("ventas")){
+            inicializarVendedor();
+        }
+        
+        this.addWindowListener(new WindowAdapter(){
+            public void windowClosing(WindowEvent e)
+            {
+                new Servidor().cerrarServidor();
+            }
+        });
+        
+        this.setVisible(true);
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    }
+    
+    public void inicializarAdmin(){
         crearTablas();
         buscarAnioFiltros();
         filtrosVendedor = cargarVendedores();
@@ -171,16 +195,67 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         cmbOpcionesMes.addActionListener(this);
         cmbOpcionesAnio.addActionListener(this);
         cmbOpcionesExtra.addActionListener(this);
+    }
+    
+    public void inicializarAdministrador(){
+        crearTablas();
+        buscarAnioFiltros();
+        filtrosVendedor = cargarVendedores();
+        filtrosCliente = cargarClientes();
         
-        this.addWindowListener(new WindowAdapter(){
-            public void windowClosing(WindowEvent e)
-            {
-                new Servidor().cerrarServidor();
-            }
-        });
+        window.dispose();
+        window.terminate();
         
-        this.setVisible(true);
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        pnlBotones.add(btnNuevo, BorderLayout.WEST);
+        pnlBotones.add(btnModificar, BorderLayout.EAST);
+        pnlRegistrar.setLayout(new BorderLayout());
+        pnlRegistrar.add(pnlTablaRegistrar, BorderLayout.CENTER);
+        pnlRegistrar.add(pnlBotones, BorderLayout.SOUTH);
+
+        principal.addTab("Registrar", pnlRegistrar);
+        
+        this.setLayout(new BorderLayout());
+        this.getContentPane().add(principal);
+
+        btnNuevo.addActionListener(this);
+        btnModificar.addActionListener(this);
+    }
+    
+    public void inicializarVendedor(){
+        crearTablas();
+        buscarAnioFiltros();
+        filtrosVendedor = cargarVendedores();
+        filtrosCliente = cargarClientes();
+        
+        window.dispose();
+        window.terminate();
+        
+        pnlFiltros.add(lblFiltros);
+        pnlFiltros.add(cmbFiltros);
+        pnlFiltros.add(lblOpcionesFiltros);
+        pnlFiltros.add(cmbOpcionesMes);
+        pnlFiltros.add(cmbOpcionesAnio);
+        pnlFiltros.add(cmbOpcionesExtra);
+
+        if(tblTablaMostrar.getRowCount() == 0){
+            cmbFiltros.setEnabled(false);
+        }
+        cmbOpcionesMes.setVisible(false);
+        cmbOpcionesAnio.setVisible(false);
+        cmbOpcionesExtra.setVisible(false);
+        
+        pnlMostrar.add(pnlFiltros, BorderLayout.NORTH);
+        pnlMostrar.add(pnlTablaMostrar, BorderLayout.CENTER);
+        
+        principal.addTab("Ver", pnlMostrar);
+
+        this.setLayout(new BorderLayout());
+        this.getContentPane().add(principal);
+
+        cmbFiltros.addActionListener(this);
+        cmbOpcionesMes.addActionListener(this);
+        cmbOpcionesAnio.addActionListener(this);
+        cmbOpcionesExtra.addActionListener(this);
     }
     
     public void crearTablas(){
@@ -237,35 +312,40 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     }
     
     public void calcularTotales(){
+        //Importe = 18
+        //Importe Pendiente = 19
+        //Importe Facturado = 20
+        //Tasa de Cambio = 22
+        //GM = 23
         DecimalFormat df = new DecimalFormat("#.00");
         double total, pendiente, facturado, totalPesos, pendientePesos, facturadoPesos, utilidadDolares, utilidadPesos, GMProm;
         total = pendiente = facturado = totalPesos = pendientePesos = facturadoPesos = utilidadDolares = utilidadPesos = GMProm = 0;
         for(int i = 0; i < tblTablaMostrar.getRowCount(); i++){
-            if(tblTablaMostrar.getValueAt(i, 19).equals("Pesos")){
-                total += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 16))) / Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20)));
-                pendiente += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 17))) / Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20)));
-                facturado += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18))) / Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20)));
+            if(tblTablaMostrar.getValueAt(i, 21).equals("Pesos")){
+                total += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18))) / Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 22)));
+                pendiente += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 19))) / Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 22)));
+                facturado += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20))) / Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 22)));
                 
-                totalPesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 16)));
-                pendientePesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 17)));
-                facturadoPesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18)));
+                totalPesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18)));
+                pendientePesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 19)));
+                facturadoPesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20)));
                 
-                utilidadDolares += (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 16))) / Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20)))) * (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 21)))/100);
-                utilidadPesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 16))) * (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 21)))/100);
+                utilidadDolares += (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18))) / Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 22)))) * (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 23)))/100);
+                utilidadPesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18))) * (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 23)))/100);
             }
             else{
-                total += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 16)));
-                pendiente += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 17)));
-                facturado += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18)));
+                total += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18)));
+                pendiente += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 19)));
+                facturado += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20)));
                 
-                totalPesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 16))) * Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20)));
-                pendientePesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 17))) * Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20)));
-                facturadoPesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18))) * Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20)));
+                totalPesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18))) * Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 22)));
+                pendientePesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 19))) * Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 22)));
+                facturadoPesos += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20))) * Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 22)));
                 
-                utilidadPesos += (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 16))) * Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 20)))) * (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 21)))/100);
-                utilidadDolares += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 16))) * (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 21)))/100);
+                utilidadPesos += (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18))) * Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 22)))) * (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 23)))/100);
+                utilidadDolares += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 18))) * (Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 23)))/100);
             }
-            GMProm += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 21)));
+            GMProm += Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 23)));
         }
         GMProm /= tblTablaMostrar.getRowCount();
         
@@ -336,7 +416,7 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         }
         else{
             try {
-                int x;
+                int x = 0;
                 comando = c.createStatement();
                 String sql = "";
                 if(usuario != 0){
@@ -348,25 +428,16 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                 ResultSet consulta = comando.executeQuery(sql);
                 if(consulta.next()){
                     x = consulta.getInt("count");
-                    if(x == 0){
-                        if(usuario != 0){
-                            //JOptionPane.showMessageDialog(null, "No hay registros en este usuario");
-                        }
-                        else{
-                            JOptionPane.showMessageDialog(null, "No hay registros en la base de datos");
-                        }
-                        return new JTable(null);
-                    }
                 }
-                else{
-                    if(usuario != 0){
-                        return new JTable(null, columnasRegistrar);
+                if(x == 0){
+                    if(usuario == 0){
+                        JOptionPane.showMessageDialog(null, "No hay registros en la base de datos");
                     }
-                    else{
-                        return new JTable(null, columnasMostrar);
-                    }
+                    return new JTable(null);
                 }
                 sql = "select ventas.*,\n" +
+                        "    (select nombrecomercial from clientes where clientes.idcliente=ventas.cliente),\n" +
+                        "    (select razonsocial from clientes where clientes.idcliente=ventas.cliente),\n" +
                         "    (select string_agg(folioservicio,',') from foliosservicio where foliosservicio.folioventa=ventas.folioventa group by foliosservicio.folioventa) as folioservicio,\n" +
                         "    (select string_agg(factura,',') from facturas where facturas.folioventa=ventas.folioventa group by facturas.folioventa) as factura,\n" +
                         "    (select string_agg(fecha::character varying,',') from facturas where facturas.folioventa=ventas.folioventa group by facturas.folioventa) as fechafactura,\n" +
@@ -394,8 +465,12 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                     fila.add(folioVenta);
                     //java.sql.Date FechaAutorizacion = consulta.getDate("fechaautorizacion");
                     fila.add(consulta.getDate("fechaautorizacion"));
-                    //String NombreCliente = consulta.getString("nombrecliente");
-                    fila.add(consulta.getString("nombrecliente"));
+                    //String NombreCliente = consulta.getString("nombrecomercial");
+                    fila.add(consulta.getString("nombrecomercial"));
+                    //String NombreCliente = consulta.getString("razonsocial");
+                    fila.add(consulta.getString("razonsocial"));
+                    //String ConceptoVenta = consulta.getString("conceptoventa");
+                    fila.add(consulta.getString("conceptoventa"));
                     //java.sql.Date FechaEntrega = consulta.getDate("fechaentrega");
                     fila.add(consulta.getDate("fechaentrega"));
                     //java.sql.Date FechaRecibido = consulta.getDate("fecharecibido");
@@ -542,10 +617,10 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         else{
             try{
                 comando = c.createStatement();
-                String sql = "select cliente from clientes";
+                String sql = "select nombrecomercial from clientes order by nombrecomercial";
                 ResultSet consulta = comando.executeQuery(sql);
                 while(consulta.next()){
-                    clientes.add(consulta.getString("cliente"));
+                    clientes.add(consulta.getString("nombrecomercial"));
                 }
                 comando.close();
                 c.close();
@@ -759,6 +834,13 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                 cmbOpcionesAnio.setVisible(false);
                 cmbOpcionesExtra.setVisible(true);
             }
+            else if(cmbFiltros.getSelectedItem().equals("Concepto de Venta")){
+                modeloExtra = new DefaultComboBoxModel(filtrosConcepto);
+                cmbOpcionesExtra.setModel(modeloExtra);
+                cmbOpcionesMes.setVisible(false);
+                cmbOpcionesAnio.setVisible(false);
+                cmbOpcionesExtra.setVisible(true);
+            }
         }
         else if(accion == cmbOpcionesMes){
             if(cmbFiltros.getSelectedItem().equals("Mes")){
@@ -943,6 +1025,38 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
             }
             else if(cmbFiltros.getSelectedItem().equals("Status")){
                 tblTablaMostrar = new JTable(modeloMostrar.FiltrarStatus(String.valueOf(cmbOpcionesExtra.getSelectedItem())));
+            }
+            else if(cmbFiltros.getSelectedItem().equals("Concepto de Venta")){
+                //"Sistemas", "Servicio", "Poliza", "Refacciones", "Reparaciones"
+                switch(cmbOpcionesExtra.getSelectedIndex()){
+                    case 0:
+                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Sistemas"));
+                        break;
+                    case 1:
+                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Servicio", "Administración"));
+                        break;
+                    case 2:
+                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Servicio", "Ventas"));
+                        break;
+                    case 3:
+                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Poliza", "Administración"));
+                        break;
+                    case 4:
+                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Poliza", "Ventas"));
+                        break;
+                    case 5:
+                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Refacciones", "Administración"));
+                        break;
+                    case 6:
+                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Refacciones", "Ventas"));
+                        break;
+                    case 7:
+                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Reparaciones", "Administración"));
+                        break;
+                    case 8:
+                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Reparaciones", "Ventas"));
+                        break;
+                }
             }
             actualizarTabla(tblTablaMostrar);
         }

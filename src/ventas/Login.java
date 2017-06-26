@@ -13,7 +13,8 @@ import javax.swing.*;
 
 public class Login extends JFrame implements ActionListener{
 
-    int usuario;
+    private int usuario;
+    private String rol;
     boolean servidor = false;
     
     JLabel lblTitulo = new JLabel("Login");
@@ -78,7 +79,7 @@ public class Login extends JFrame implements ActionListener{
                     
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            new Thread(new WaitWindow(usuario)).start();
+                            new Thread(new WaitWindow(usuario, rol)).start();
                         }
                     });
                     
@@ -95,7 +96,7 @@ public class Login extends JFrame implements ActionListener{
                     
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            new Thread(new WaitWindow(usuario)).start();
+                            new Thread(new WaitWindow(usuario, rol)).start();
                         }
                     });
                     
@@ -130,16 +131,18 @@ public class Login extends JFrame implements ActionListener{
         else{
             try {
                 comando = c.createStatement();
-                String sql = "select idusuario, password from usuarios where usuario='" + user + "'";
+                String sql = "select idusuario, password, rol from usuarios where usuario='" + user + "'";
                 ResultSet consulta = comando.executeQuery(sql);
                 if(consulta.next()){
                     usuario = consulta.getInt("idusuario");
                     String p = consulta.getString("password");
+                    rol = consulta.getString("rol");
                     if(password.equals(p)){
                         return true;
                     }
                 }
                 usuario = -1;
+                rol = "";
                 JOptionPane.showMessageDialog(null, "Usuario o Contraseña incorrecta");
                 comando.close();
                 c.close();

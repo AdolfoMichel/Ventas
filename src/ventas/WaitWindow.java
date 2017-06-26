@@ -19,17 +19,18 @@ import javax.swing.*;
 public class WaitWindow extends JFrame implements Runnable{
 
     private volatile boolean running = true;
-    int user;
+    private int user;
+    private String rol;
     WaitWindow w;
 
-    WaitWindow(int usuario){
+    WaitWindow(int usuario, String rol){
         super("Registro de Ventas - Cargando Registros");
         this.setSize(600,300);
     	
         
         w = this;
         user = usuario;
-        
+        this.rol = rol;
         try{
             URL url = this.getClass().getResource("images/loading.gif");
             Icon icon = new ImageIcon(url);
@@ -64,7 +65,7 @@ public class WaitWindow extends JFrame implements Runnable{
         Thread t = new Thread(){
             @Override
             public void run(){
-                new Ventas(user, w);
+                new Ventas(user, rol, w);
                 while(true){
                     try {
                         Thread.sleep(1000);

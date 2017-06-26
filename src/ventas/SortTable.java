@@ -21,29 +21,31 @@ public class SortTable extends AbstractTableModel{
     private static final int COLUMN_ORDENCOMPRA     = 2;
     private static final int COLUMN_COTIZACION     = 3;
     private static final int COLUMN_FOLIOSERVICIO = 4;
-    private static final int COLUMN_CLIENTE = 5;
-    private static final int COLUMN_FECHAORDENGINSATEC = 6;
-    private static final int COLUMN_ORDENCOMPRAGINSATEC = 7;
-    private static final int COLUMN_FECHAENTREGA = 8;
-    private static final int COLUMN_FECHARECIBIDO = 9;
-    private static final int COLUMN_RECIBIDO = 10;
-    private static final int COLUMN_INSTALACION = 11;
-    private static final int COLUMN_CANALIZACION = 12;
-    private static final int COLUMN_FECHAFACTURA = 13;
-    private static final int COLUMN_FACTURA = 14;
-    private static final int COLUMN_VENDEDOR = 15;
-    private static final int COLUMN_IMPORTE = 16;
-    private static final int COLUMN_IMPORTEPENDIENTE = 17;
-    private static final int COLUMN_IMPORTEFACTURADO = 18;
-    private static final int COLUMN_MONEDA = 19;
-    private static final int COLUMN_TASACAMBIO = 20;
-    private static final int COLUMN_GM = 21;
-    private static final int COLUMN_DIASCREDITO = 22;
-    private static final int COLUMN_FECHAVENCIMIENTO = 23;
-    private static final int COLUMN_STATUS = 24;
-    private static final int COLUMN_NOTAS = 25;
-    private static final int COLUMN_CAPTURO = 26;
-    private static final int COLUMN_NO = 27;
+    private static final int COLUMN_NOMBRECOMERCIAL = 5;
+    private static final int COLUMN_RAZONSOCIAL = 6;
+    private static final int COLUMN_CONCEPTOVENTA = 7;
+    private static final int COLUMN_FECHAORDENGINSATEC = 8;
+    private static final int COLUMN_ORDENCOMPRAGINSATEC = 9;
+    private static final int COLUMN_FECHAENTREGA = 10;
+    private static final int COLUMN_FECHARECIBIDO = 11;
+    private static final int COLUMN_RECIBIDO = 12;
+    private static final int COLUMN_INSTALACION = 13;
+    private static final int COLUMN_CANALIZACION = 14;
+    private static final int COLUMN_FECHAFACTURA = 15;
+    private static final int COLUMN_FACTURA = 16;
+    private static final int COLUMN_VENDEDOR = 17;
+    private static final int COLUMN_IMPORTE = 18;
+    private static final int COLUMN_IMPORTEPENDIENTE = 19;
+    private static final int COLUMN_IMPORTEFACTURADO = 20;
+    private static final int COLUMN_MONEDA = 21;
+    private static final int COLUMN_TASACAMBIO = 22;
+    private static final int COLUMN_GM = 23;
+    private static final int COLUMN_DIASCREDITO = 24;
+    private static final int COLUMN_FECHAVENCIMIENTO = 25;
+    private static final int COLUMN_STATUS = 26;
+    private static final int COLUMN_NOTAS = 27;
+    private static final int COLUMN_CAPTURO = 28;
+    private static final int COLUMN_NO = 29;
     
     String[] columnas;
     ArrayList<Filas> datos = null; 
@@ -99,8 +101,14 @@ public class SortTable extends AbstractTableModel{
         case COLUMN_FOLIOSERVICIO:
             returnValue = fila.FolioServicio;
             break;
-        case COLUMN_CLIENTE:
-            returnValue = fila.NombreCliente;
+        case COLUMN_NOMBRECOMERCIAL:
+            returnValue = fila.NombreComercial;
+            break;
+        case COLUMN_RAZONSOCIAL:
+            returnValue = fila.RazonSocial;
+            break;
+        case COLUMN_CONCEPTOVENTA:
+            returnValue = fila.ConceptoVenta;
             break;
         case COLUMN_FECHAORDENGINSATEC:
             returnValue = fila.FechaOrdenCompraGINSATEC;
@@ -250,8 +258,7 @@ public class SortTable extends AbstractTableModel{
                 filtro.add(datos.get(i));
             }
         }
-        SortTable fechas = new SortTable(columnas, filtro);
-        return fechas.Filtrar(year);
+        return new SortTable(columnas, filtro).Filtrar(year);
     }
     
     public SortTable Filtrar(String vendedor, int month, int year){
@@ -261,8 +268,7 @@ public class SortTable extends AbstractTableModel{
                 filtro.add(datos.get(i));
             }
         }
-        SortTable fechas = new SortTable(columnas, filtro);
-        return fechas.Filtrar(month, year);
+        return new SortTable(columnas, filtro).Filtrar(month, year);
     }
     
     public SortTable Filtrar(String vendedor, int firstMonth, int lastMonth, int year){
@@ -272,14 +278,13 @@ public class SortTable extends AbstractTableModel{
                 filtro.add(datos.get(i));
             }
         }
-        SortTable fechas = new SortTable(columnas, filtro);
-        return fechas.Filtrar(firstMonth, lastMonth, year);
+        return new SortTable(columnas, filtro).Filtrar(firstMonth, lastMonth, year);
     }
     
     public SortTable FiltrarCliente(String cliente){
         ArrayList<Filas> filtro = new ArrayList<Filas>();
         for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).NombreCliente.equals(cliente)){
+            if(datos.get(i).NombreComercial.equals(cliente)){
                 filtro.add(datos.get(i));
             }
         }
@@ -289,34 +294,31 @@ public class SortTable extends AbstractTableModel{
     public SortTable FiltrarCliente(String cliente, int year){
         ArrayList<Filas> filtro = new ArrayList<Filas>();
         for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).NombreCliente.equals(cliente)){
+            if(datos.get(i).NombreComercial.equals(cliente)){
                 filtro.add(datos.get(i));
             }
         }
-        SortTable fechas = new SortTable(columnas, filtro);
-        return fechas.Filtrar(year);
+        return new SortTable(columnas, filtro).Filtrar(year);
     }
     
     public SortTable FiltrarCliente(String cliente, int month, int year){
         ArrayList<Filas> filtro = new ArrayList<Filas>();
         for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).NombreCliente.equals(cliente)){
+            if(datos.get(i).NombreComercial.equals(cliente)){
                 filtro.add(datos.get(i));
             }
         }
-        SortTable fechas = new SortTable(columnas, filtro);
-        return fechas.Filtrar(month, year);
+        return new SortTable(columnas, filtro).Filtrar(month, year);
     }
     
     public SortTable FiltrarCliente(String cliente, int firstMonth, int lastMonth, int year){
         ArrayList<Filas> filtro = new ArrayList<Filas>();
         for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).NombreCliente.equals(cliente)){
+            if(datos.get(i).NombreComercial.equals(cliente)){
                 filtro.add(datos.get(i));
             }
         }
-        SortTable fechas = new SortTable(columnas, filtro);
-        return fechas.Filtrar(firstMonth, lastMonth, year);
+        return new SortTable(columnas, filtro).Filtrar(firstMonth, lastMonth, year);
     }
     
     public SortTable FiltrarStatus(String status){
@@ -327,6 +329,39 @@ public class SortTable extends AbstractTableModel{
             }
         }
         return new SortTable(columnas, filtro);
+    }
+    
+    public SortTable FiltrarConcepto(String tipo){
+        ArrayList<Filas> filtro = new ArrayList<Filas>();
+        for(int i = 0; i < datos.size(); i++){
+            if(datos.get(i).ConceptoVenta.equals(tipo)){
+                filtro.add(datos.get(i));
+            }
+        }
+        return new SortTable(columnas, filtro);
+    }
+    
+    public SortTable FiltrarConcepto(String tipo, String departamento){
+        ArrayList<Filas> filtro = new ArrayList<Filas>();
+        if(departamento.equals("Ventas")){
+            for(int i = 0; i < datos.size(); i++){
+                if(     datos.get(i).Vendedor.equals("Mario Gonzalez") || 
+                        datos.get(i).Vendedor.equals("Daniel Martinez") || 
+                        datos.get(i).Vendedor.equals("Marco Padilla") ||
+                        datos.get(i).Vendedor.equals("Alberto Lomeli")){
+                    filtro.add(datos.get(i));
+                }
+            }
+        }
+        else{
+            for(int i = 0; i < datos.size(); i++){
+                if(     datos.get(i).Vendedor.equals("Mariano Ruiz") || 
+                        datos.get(i).Vendedor.equals("Rosario Arellano")){
+                    filtro.add(datos.get(i));
+                }
+            }
+        }
+        return new SortTable(columnas, filtro).FiltrarConcepto(tipo);
     }
     
     public void modificar(int id, Filas f){

@@ -19,6 +19,7 @@ import java.util.Calendar;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.logging.*;
+import java.util.regex.Pattern;
 import javax.swing.*;
 
 public class Capturar extends JFrame implements ActionListener, Runnable{
@@ -30,6 +31,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     
     static final String noHayRuta = "No hay archivo seleccionado";
 
+    Hashtable<Integer,Integer> hstCliente = new Hashtable<>();
     Hashtable<String,String> hstArchivoCotizacion = new Hashtable<>();
     Hashtable<String,String> hstArchivoOrdenCompra = new Hashtable<>();
     Hashtable<String,String> hstFechaOrdenGINSATEC = new Hashtable<>();
@@ -39,7 +41,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     JLabel lblFechaAutorizacion = new JLabel("Fecha Autorizacion:");
     DateChooserCombo dccFechaAutorizacion = new DateChooserCombo();
     
-    JLabel lblOrdenCompra = new JLabel("Orden de Compra:");
+    JLabel lblOrdenCompra = new JLabel("Orden de Compra:", SwingConstants.RIGHT);
     JTextField txtOrdenCompra = new JTextField();
     JTextField txtArchivoOrdenCompra = new JTextField();
     JButton btnArchivoOrdenCompra = new JButton("Agregar Archivo");
@@ -49,7 +51,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     JList lstOrdenCompra = new JList(dlmOrdenCompra);
     JScrollPane pnlListaOrdenCompra = new JScrollPane(lstOrdenCompra);
     
-    JLabel lblCotizacion = new JLabel("Cotización:");
+    JLabel lblCotizacion = new JLabel("Cotización:", SwingConstants.RIGHT);
     JTextField txtCotizacion = new JTextField();
     JTextField txtArchivoCotizacion = new JTextField();
     JButton btnArchivoCotizacion = new JButton("Agregar Archivo");
@@ -59,7 +61,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     JList lstCotizacion = new JList(dlmCotizacion);
     JScrollPane pnlListaCotizacion = new JScrollPane(lstCotizacion);
     
-    JLabel lblFolio = new JLabel("Folio de servicio");
+    JLabel lblFolio = new JLabel("Folio de servicio:", SwingConstants.RIGHT);
     JTextField txtFolio = new JTextField();
     JButton btnAgregarFolio = new JButton("Agregar");
     JButton btnEliminarFolio = new JButton("Eliminar");
@@ -67,9 +69,9 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     JList lstFolio = new JList(dlmFolio);
     JScrollPane pnlListaFolio = new JScrollPane(lstFolio);
     
-    JLabel lblFactura = new JLabel("Factura:");
+    JLabel lblFactura = new JLabel("Factura:", SwingConstants.RIGHT);
     JTextField txtFactura = new JTextField();
-    JLabel lblFechaFactura = new JLabel("Fecha Factura:");
+    JLabel lblFechaFactura = new JLabel("Fecha Factura:", SwingConstants.RIGHT);
     DateChooserCombo dccFechaFactura = new DateChooserCombo();
     JButton btnAgregarFactura = new JButton("Agregar");
     JButton btnEliminarFactura = new JButton("Eliminar");
@@ -77,9 +79,9 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     JList lstFactura = new JList(dlmFactura);
     JScrollPane pnlListaFactura = new JScrollPane(lstFactura);
     
-    JLabel lblOrdenGINSATEC = new JLabel("Orden de Compra GINSATEC:");
+    JLabel lblOrdenGINSATEC = new JLabel("Orden de Compra GINSATEC:", SwingConstants.RIGHT);
     JTextField txtOrdenGINSATEC = new JTextField();
-    JLabel lblFechaOrdenGINSATEC = new JLabel("Fecha Orden GINSATEC:");
+    JLabel lblFechaOrdenGINSATEC = new JLabel("Fecha Orden GINSATEC:", SwingConstants.RIGHT);
     DateChooserCombo dccFechaOrdenGINSATEC = new DateChooserCombo();
     JButton btnAgregarOrdenGINSATEC = new JButton("Agregar");
     JButton btnEliminarOrdenGINSATEC = new JButton("Eliminar");
@@ -88,55 +90,65 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     JScrollPane pnlListaOrdenGINSATEC = new JScrollPane(lstOrdenGINSATEC);
     
     Vector<String> opcionesCliente;
-    JLabel lblCliente = new JLabel("Cliente:");
-    DefaultComboBoxModel model;
+    Vector<String> opcionesNombreComercial;
+    Vector<String> opcionesRazonSocial;
+    JLabel lblCliente = new JLabel("Nombre Comercial:");
+    //JLabel lblRazonSocial = new JLabel("Razón Social:");
+    DefaultComboBoxModel modelCliente;
     JComboBox cmbCliente;
+    //DefaultComboBoxModel modelRazonSocial;
+    //JComboBox cmbRazonSocial;
+    JButton btnBuscarCliente = new JButton("Buscar");
     JButton btnNuevoCliente = new JButton("Agregar Nuevo");
     JButton btnModificarCliente = new JButton("Modificar");
     
-    JLabel lblRecibido = new JLabel("Material Recibido");
+    JLabel lblRecibido = new JLabel("Material Recibido:", SwingConstants.RIGHT);
     JCheckBox chkRecibido = new JCheckBox();
     
-    JLabel lblInstalacion = new JLabel("Requiere Instalación");
+    JLabel lblInstalacion = new JLabel("Requiere Instalación:", SwingConstants.RIGHT);
     JCheckBox chkInstalacion = new JCheckBox();
     
-    JLabel lblCanalizacion = new JLabel("Requiere Canalización");
+    JLabel lblCanalizacion = new JLabel("Requiere Canalización:", SwingConstants.RIGHT);
     JCheckBox chkCanalizacion = new JCheckBox();
     
-    JLabel lblGM = new JLabel("GM:");
+    JLabel lblGM = new JLabel("GM:", SwingConstants.RIGHT);
     JTextField txtGM = new JTextField();
     JLabel lblGMporciento = new JLabel("%");
     
-    JLabel lblDiasCredito = new JLabel("Días de Credito:");
+    JLabel lblDiasCredito = new JLabel("Días de Credito:", SwingConstants.RIGHT);
     JTextField txtDiasCredito = new JTextField();
     
-    JLabel lblFechaEntrega = new JLabel("Fecha Entrega:");
+    JLabel lblFechaEntrega = new JLabel("Fecha Entrega:", SwingConstants.RIGHT);
     DateChooserCombo dccFechaEntrega = new DateChooserCombo();
     
-    JLabel lblFechaRecibido = new JLabel("Fecha Recibido:");
+    JLabel lblFechaRecibido = new JLabel("Fecha Recibido:", SwingConstants.RIGHT);
     DateChooserCombo dccFechaRecibido = new DateChooserCombo();
     
     Vector<String> opcionesVendedor; // = {"Mario Gonzalez", "Marco Padilla", "Daniel Martinez", "Rosario Arellano", "Alberto Lomeli", "Mariano Ruiz"};
-    JLabel lblVendedor = new JLabel("Vendedor:");
+    JLabel lblVendedor = new JLabel("Vendedor:", SwingConstants.RIGHT);
     JComboBox cmbVendedor;
     
     String[] opcionesMoneda = {"Dólares", "Pesos"};
-    JLabel lblImporte = new JLabel("Importe:");
+    JLabel lblImporte = new JLabel("Importe:", SwingConstants.RIGHT);
     JTextField txtImporte = new JTextField();
-    JLabel lblImportePendiente = new JLabel("Importe Pendiente:");
+    JLabel lblImportePendiente = new JLabel("Importe Pendiente:", SwingConstants.RIGHT);
     JTextField txtImportePendiente = new JTextField();
-    JLabel lblImporteFacturado = new JLabel("Importe Facturado:");
+    JLabel lblImporteFacturado = new JLabel("Importe Facturado:", SwingConstants.RIGHT);
     JTextField txtImporteFacturado = new JTextField();
     JComboBox cmbMoneda = new JComboBox(opcionesMoneda);
     
-    JLabel lblTasaCambio = new JLabel("Tasa de cambio:");
+    JLabel lblTasaCambio = new JLabel("Tasa de cambio:", SwingConstants.RIGHT);
     JTextField txtTasaCambio = new JTextField();
     
-    JLabel lblFechaVencimiento = new JLabel("Fecha Vencimiento Pago:");
+    JLabel lblFechaVencimiento = new JLabel("Fecha Vencimiento Pago:", SwingConstants.RIGHT);
     DateChooserCombo dccFechaVencimiento = new DateChooserCombo();
     
+    String[] opcionesConceptoVenta = {"Sistemas", "Servicio", "Poliza", "Refacciones", "Reparaciones"};
+    JLabel lblConceptoVenta = new JLabel("Concepto de Venta:", SwingConstants.RIGHT);
+    JComboBox cmbConceptoVenta = new JComboBox(opcionesConceptoVenta);
+    
     String[] opcionesStatus = {"Pendiente", "Activa", "Pagada", "No pagada", "Cancelada"};
-    JLabel lblStatus = new JLabel("Status:");
+    JLabel lblStatus = new JLabel("Status:", SwingConstants.RIGHT);
     JComboBox cmbStatus = new JComboBox(opcionesStatus);
     
     JLabel lblNotas = new JLabel("Notas:");
@@ -151,6 +163,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         nuevo = true;
         txtArchivoOrdenCompra.setText(noHayRuta);
         txtArchivoCotizacion.setText(noHayRuta);
+        txtTasaCambio.setText("20.00");
         ventas = ref;
     }
     
@@ -171,20 +184,28 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         
         opcionesVendedor = cargarVendedores();
         cmbVendedor = new JComboBox(opcionesVendedor);
-        opcionesCliente = cargarClientes();
-        model = new DefaultComboBoxModel(opcionesCliente);
-        cmbCliente = new JComboBox(model);
+        cargarClientes();
+        modelCliente = new DefaultComboBoxModel(opcionesCliente);
+        cmbCliente = new JComboBox(modelCliente);
+        //modelRazonSocial = new DefaultComboBoxModel(opcionesRazonSocial);
+        //cmbRazonSocial = new JComboBox(modelRazonSocial);
         
         pnlPrimero.add(lblFechaAutorizacion);
         pnlPrimero.add(dccFechaAutorizacion);
         pnlPrimero.add(lblCliente);
         pnlPrimero.add(cmbCliente);
+        //pnlPrimero.add(lblRazonSocial);
+        //pnlPrimero.add(cmbRazonSocial);
+        pnlPrimero.add(btnBuscarCliente);
         pnlPrimero.add(btnNuevoCliente);
         pnlPrimero.add(btnModificarCliente);
-        cmbCliente.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth()/2, 30));
+        cmbCliente.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth()/3, 30));
+        //cmbRazonSocial.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth()/5, 30));
+        cmbCliente.setMaximumRowCount(20);
+        //cmbRazonSocial.setMaximumRowCount(20);
         
         JPanel pnlOrdenes = new JPanel(new GridLayout(3,1));
-        JPanel pnlComplementarioOrdenes = new JPanel(new GridLayout(1,2));
+        JPanel pnlComplementarioOrdenes = new JPanel(new GridLayout(1,2,30,10));
         pnlComplementarioOrdenes.add(lblOrdenCompra);
         pnlComplementarioOrdenes.add(txtOrdenCompra);
         JPanel pnlArchivoOrdenes = new JPanel(new GridLayout(2,1));
@@ -202,7 +223,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlListaOrdenes.add(pnlListaOrdenCompra);
         
         JPanel pnlCotizaciones = new JPanel(new GridLayout(3,1));
-        JPanel pnlComplementarioCotizaciones = new JPanel(new GridLayout(1,2));
+        JPanel pnlComplementarioCotizaciones = new JPanel(new GridLayout(1,2,30,10));
         pnlComplementarioCotizaciones.add(lblCotizacion);
         pnlComplementarioCotizaciones.add(txtCotizacion);
         JPanel pnlArchivoCotizaciones = new JPanel(new GridLayout(2,1));
@@ -219,7 +240,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlListaCotizaciones.add(pnlCotizaciones);
         pnlListaCotizaciones.add(pnlListaCotizacion);
         
-        JPanel pnlFolios = new JPanel(new GridLayout(2,2,10,10));
+        JPanel pnlFolios = new JPanel(new GridLayout(2,2,30,10));
         pnlFolios.add(lblFolio);
         pnlFolios.add(txtFolio);
         pnlFolios.add(btnAgregarFolio);
@@ -228,7 +249,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlListaFolios.add(pnlFolios);
         pnlListaFolios.add(pnlListaFolio);
         
-        JPanel pnlFacturas = new JPanel(new GridLayout(3,2,10,10));
+        JPanel pnlFacturas = new JPanel(new GridLayout(3,2,30,10));
         pnlFacturas.add(lblFactura);
         pnlFacturas.add(txtFactura);
         pnlFacturas.add(lblFechaFactura);
@@ -239,7 +260,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlListaFacturas.add(pnlFacturas);
         pnlListaFacturas.add(pnlListaFactura);
         
-        JPanel pnlOrdenesGINSATEC = new JPanel(new GridLayout(3,2,10,10));
+        JPanel pnlOrdenesGINSATEC = new JPanel(new GridLayout(3,2,30,10));
         pnlOrdenesGINSATEC.add(lblOrdenGINSATEC);
         pnlOrdenesGINSATEC.add(txtOrdenGINSATEC);
         pnlOrdenesGINSATEC.add(lblFechaOrdenGINSATEC);
@@ -250,7 +271,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlListaOrdenesGINSATEC.add(pnlOrdenesGINSATEC);
         pnlListaOrdenesGINSATEC.add(pnlListaOrdenGINSATEC);
         
-        JPanel pnlFinanciero = new JPanel(new GridLayout(6,2));
+        JPanel pnlFinanciero = new JPanel(new GridLayout(6,2,50,0));
         pnlFinanciero.add(lblVendedor);
         pnlFinanciero.add(cmbVendedor);
         pnlFinanciero.add(lblImporte);
@@ -271,7 +292,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlFinanciero.add(pnlGM);
         
         
-        JPanel pnlCheckBox = new JPanel(new GridLayout(3,2));
+        JPanel pnlCheckBox = new JPanel(new GridLayout(3,2,50,0));
         pnlCheckBox.add(lblRecibido);
         pnlCheckBox.add(chkRecibido);
         pnlCheckBox.add(lblInstalacion);
@@ -279,7 +300,9 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlCheckBox.add(lblCanalizacion);
         pnlCheckBox.add(chkCanalizacion);
         JPanel pnlDivision = new JPanel(new GridLayout(1,2));
-        JPanel pnlDiasCredito = new JPanel(new GridLayout(2,2));
+        JPanel pnlDiasCredito = new JPanel(new GridLayout(3,2,50,10));
+        pnlDiasCredito.add(lblConceptoVenta);
+        pnlDiasCredito.add(cmbConceptoVenta);
         pnlDiasCredito.add(lblDiasCredito);
         pnlDiasCredito.add(txtDiasCredito);
         pnlDiasCredito.add(lblStatus);
@@ -287,7 +310,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlDivision.add(pnlCheckBox);
         pnlDivision.add(pnlDiasCredito);
         
-        JPanel pnlFechas = new JPanel(new GridLayout(3,2));
+        JPanel pnlFechas = new JPanel(new GridLayout(3,2,50,0));
         pnlFechas.add(lblFechaEntrega);
         pnlFechas.add(dccFechaEntrega);
         pnlFechas.add(lblFechaRecibido);
@@ -326,6 +349,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         
         btnGuardar.addActionListener(this);
         btnCancelar.addActionListener(this);
+        btnBuscarCliente.addActionListener(this);
         btnNuevoCliente.addActionListener(this);
         btnArchivoOrdenCompra.addActionListener(this);
         btnAgregarOrdenCompra.addActionListener(this);
@@ -340,6 +364,8 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         btnAgregarFolio.addActionListener(this);
         btnEliminarFolio.addActionListener(this);
         btnModificarCliente.addActionListener(this);
+        //cmbCliente.addActionListener(this);
+        //cmbRazonSocial.addActionListener(this);
         
         this.addWindowListener(new WindowAdapter(){
             public void windowClosing(WindowEvent e)
@@ -376,7 +402,10 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
             try {
                 int x;
                 comando = c.createStatement();
-                String sql = "select * from ventas where folioventa=" + folioVenta;
+                String sql =    "select ventas.*,"
+                        +       "(select nombrecomercial from clientes where clientes.idcliente=ventas.cliente) as nombrecomercial,"
+                        +       "(select razonsocial from clientes where clientes.idcliente=ventas.cliente) as razonsocial"
+                        +       " from ventas where folioventa=" + folioVenta;
                 ResultSet consulta = comando.executeQuery(sql);
                 if(consulta.next()){
                     //java.sql.Date FechaAutorizacion = consulta.getDate("fechaautorizacion");
@@ -389,8 +418,10 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     cargarCotizaciones(folioVenta);
                     //String FolioServicio = cargarFoliosServicio(folioVenta);
                     cargarFoliosServicio(folioVenta);
+                    //String NombreCliente = consulta.getString("nombrecomercial");
+                    cmbCliente.setSelectedItem(consulta.getString("nombrecomercial") + "-" + consulta.getString("razonsocial"));
                     //String NombreCliente = consulta.getString("nombrecliente");
-                    cmbCliente.setSelectedItem(consulta.getString("nombrecliente"));
+                    cmbConceptoVenta.setSelectedItem(consulta.getString("conceptoventa"));
                     //String FechaOrdenCompraGINSATEC = cargarFechasOrdenesCompraGINSATEC(folioVenta);
                     //String OrdenCompraGINSATEC = cargarOrdenesCompraGINSATEC(folioVenta);
                     cargarOrdenesCompraGINSATEC(folioVenta);
@@ -470,9 +501,13 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         return vendedores;
     }
     
-    public Vector<String> cargarClientes(){
-        Vector<String> clientes = new Vector<String>();
-        clientes.add("");
+    public void cargarClientes(){
+        opcionesCliente = new Vector<String>();
+        opcionesCliente.add("");
+        opcionesNombreComercial = new Vector<String>();
+        opcionesNombreComercial.add("");
+        opcionesRazonSocial = new Vector<String>();
+        opcionesRazonSocial.add("");
         Connection c = ConectarDB();
         Statement comando = null;
 
@@ -482,10 +517,15 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         else{
             try{
                 comando = c.createStatement();
-                String sql = "select cliente from clientes";
+                String sql = "select * from clientes order by nombrecomercial";
                 ResultSet consulta = comando.executeQuery(sql);
+                int i = 1;
                 while(consulta.next()){
-                    clientes.add(consulta.getString("cliente"));
+                    hstCliente.put(i, consulta.getInt("idcliente"));
+                    opcionesNombreComercial.add(consulta.getString("nombrecomercial"));
+                    opcionesRazonSocial.add(consulta.getString("razonsocial"));
+                    opcionesCliente.add(opcionesNombreComercial.lastElement() + "-" + opcionesRazonSocial.lastElement());
+                    i++;
                 }
                 comando.close();
                 c.close();
@@ -494,7 +534,6 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        return clientes;
     }
 
     public void cargarFoliosServicio(int folioVenta){
@@ -534,7 +573,6 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 while(consulta.next()){
                     factura = consulta.getString("factura");
                     fecha = String.valueOf(consulta.getDate("fecha"));
-                    System.out.println("Factura " + factura + " | " + fecha);
                     hstFechaFactura.put(factura, fecha);
                     dlmFactura.addElement(factura);
                 }
@@ -564,7 +602,6 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     if(ruta == null){
                         ruta = noHayRuta;
                     }
-                    System.out.println("Orden Compra: " + orden + " | " + ruta);
                     hstArchivoOrdenCompra.put(orden, ruta);
                     dlmOrdenCompra.addElement(orden);
                 }
@@ -591,7 +628,6 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 while(consulta.next()){
                     orden = consulta.getString("ordencompra");
                     fecha = String.valueOf(consulta.getDate("fecha"));
-                    System.out.println("Orden GINSATEC: " + orden + " | " + fecha);
                     hstFechaOrdenGINSATEC.put(orden, fecha);
                     dlmOrdenGINSATEC.addElement(orden);
                 }
@@ -623,7 +659,6 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                         ruta = noHayRuta;
                     }
                     hstArchivoCotizacion.put(cotizacion, ruta);
-                    System.out.println("Cotizacion: " + cotizacion + " | " + ruta);
                     dlmCotizacion.addElement(cotizacion);
                 }
                 comando.close();
@@ -634,7 +669,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         }
     }
     
-    public void nuevoCliente(String cliente){
+    public void nuevoCliente(String nombreComercial, String razonSocial){
         Connection c = ConectarDB();
         Statement comando = null;
         if( c == null ){
@@ -649,7 +684,8 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 if(consulta.next()){
                     id = consulta.getInt("max") + 1;
                 }
-                sql = "insert into clientes values(" + id + ",'" + cliente + "')";
+                hstCliente.put(cmbCliente.getItemCount()-1, id);
+                sql = "insert into clientes values(" + id + ",'" + nombreComercial + "','" + razonSocial + "')";
                 comando.executeUpdate(sql);
                 comando.close();
                 c.close();
@@ -660,16 +696,17 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         }
     }
     
-    public void modificarCliente(String clienteViejo, String clienteNuevo){
+    public void modificarCliente(String nombreComercial, String razonSocial){
         Connection c = ConectarDB();
         Statement comando = null;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
+            int id = hstCliente.get(cmbCliente.getSelectedIndex());
             try{
                 comando = c.createStatement();
-                String sql = "update clientes set cliente='" + clienteNuevo + "' where cliente='" + clienteViejo + "'";
+                String sql = "update clientes set nombrecomercial='" + nombreComercial + "', razonsocial='" + razonSocial +"' where idcliente=" + id + ";";
                 comando.executeUpdate(sql);
                 comando.close();
                 c.close();
@@ -700,7 +737,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 folio = folioVenta;
                 
                 sql = "insert into ventas values(" + folioVenta + ",'" + dccFechaAutorizacion.getText() + "','" 
-                        + cmbCliente.getSelectedItem() + "','" + dccFechaEntrega.getText() + "','" + dccFechaRecibido.getText() 
+                        + hstCliente.get(cmbCliente.getSelectedIndex()) + "','" + cmbConceptoVenta.getSelectedItem() + "','" + dccFechaEntrega.getText() + "','" + dccFechaRecibido.getText() 
                         + "','" + chkRecibido.isSelected() + "','" + chkInstalacion.isSelected() + "','" + chkCanalizacion.isSelected() 
                         + "','" + cmbVendedor.getSelectedItem() + "'," + txtImporte.getText() + "," + txtImportePendiente.getText() + ","
                         + txtImporteFacturado.getText() + ",'" + cmbMoneda.getSelectedItem() + "'," + txtTasaCambio.getText() + "," 
@@ -800,8 +837,8 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
             try {
                 int id;
                 comando = c.createStatement();
-                String sql = "update ventas set fechaautorizacion='" + dccFechaAutorizacion.getText() + "',nombrecliente='" 
-                        + cmbCliente.getSelectedItem() + "',fechaentrega='" + dccFechaEntrega.getText() + "',fecharecibido='" + dccFechaRecibido.getText() 
+                String sql = "update ventas set fechaautorizacion='" + dccFechaAutorizacion.getText() + "',cliente=" 
+                        + hstCliente.get(cmbCliente.getSelectedIndex()) + ", conceptoventa='" + cmbConceptoVenta.getSelectedItem() + "',fechaentrega='" + dccFechaEntrega.getText() + "',fecharecibido='" + dccFechaRecibido.getText() 
                         + "',materialrecibido='" + chkRecibido.isSelected() + "',requiereinstalacion='" + chkInstalacion.isSelected() 
                         + "',requierecanalizacion='" + chkCanalizacion.isSelected() + "',vendedor='" + cmbVendedor.getSelectedItem() + "',importe=" 
                         + txtImporte.getText() + ",importependiente=" + txtImportePendiente.getText() + ",importefacturado=" + txtImporteFacturado.getText()
@@ -1193,7 +1230,9 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         try{
             f.FolioVenta = folio;
             f.FechaAutorizacion = dccFechaAutorizacion.getSelectedDate().getTime();
-            f.NombreCliente = String.valueOf(cmbCliente.getSelectedItem());
+            f.NombreComercial = opcionesNombreComercial.get(cmbCliente.getSelectedIndex());
+            f.RazonSocial = opcionesRazonSocial.get(cmbCliente.getSelectedIndex());
+            f.ConceptoVenta = String.valueOf(cmbConceptoVenta.getSelectedItem());
             f.FechaEntrega = dccFechaEntrega.getSelectedDate().getTime();
             f.FechaRecibido = dccFechaRecibido.getSelectedDate().getTime();
             if(chkRecibido.isSelected()){
@@ -1334,7 +1373,6 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     else{
                         ventas.modeloMostrar.modificar(folio, f);
                         ventas.tcaMostrar.adjustColumns();
-                        System.out.println("Agregar a mostrar");
                     }
                     this.dispose();
                 }
@@ -1344,33 +1382,74 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
             ventas.actualizarFiltro();
             this.dispose();
         }
-        else if(accion == btnNuevoCliente){
-            String cliente = JOptionPane.showInputDialog(
-                    this, 
-                    "Nombre del nuevo cliente:", 
-                    "Agregar Nuevo Cliente", 
+        else if(accion == btnBuscarCliente){
+            String buscar = JOptionPane.showInputDialog(
+                    this,
+                    "Buscar Cliente",
+                    "Escribe el Cliente a buscar",
                     JOptionPane.INFORMATION_MESSAGE);
-            if(cliente != null){
-                cliente = cliente.toUpperCase();
+            if(buscar != null){
+                int index = buscar(buscar);
+                cmbCliente.setSelectedIndex(index);
+            }
+        }
+        else if(accion == btnNuevoCliente){
+            String nombreComercial = null; 
+            do{
+                nombreComercial = JOptionPane.showInputDialog(
+                    this, 
+                    "Nombre Comercial del nuevo cliente:", 
+                    "Agregar Nuevo Nombre Comercial", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                if(nombreComercial.contains("'")){
+                JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
+                        + "Por favor evita usarlo");
+            }
+            }while(nombreComercial.contains("'"));
+            String razonSocial = null;
+            do{
+            razonSocial = JOptionPane.showInputDialog(
+                    this, 
+                    "Razón Social del nuevo cliente:", 
+                    "Agregar Nueva Razón Social", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            if(razonSocial.contains("'")){
+                JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
+                        + "Por favor evita usarlo");
+            }
+            }while(razonSocial.contains("'"));
+            if(nombreComercial != null && razonSocial != null){
+                nombreComercial = nombreComercial.toUpperCase();
+                razonSocial = razonSocial.toUpperCase();
                 boolean iguales = false;
                 for(int i = 0; i < opcionesCliente.size(); i++){
-                    if(opcionesCliente.get(i).equals(cliente)){
+                    if(opcionesNombreComercial.get(i).equals(nombreComercial) && opcionesRazonSocial.get(i).equals(razonSocial)){
                         iguales = true;
                     }
                 }
-                
-                if(cliente.equals("")){
-                    JOptionPane.showMessageDialog(null, "No es un nombre de cliente valido");
+                if(nombreComercial.equals("") && razonSocial.equals("")){
+                    JOptionPane.showMessageDialog(null, "Debes capturar al menos uno de los dos.\n"
+                            + "Nombre Comercial o Razón Social");
                 }
                 else if(iguales){
-                    JOptionPane.showMessageDialog(null, "El cliente ya existe");
+                    JOptionPane.showMessageDialog(null, "Ese conjunto de Nombre Comercial y Razón Social ya existen");
                 }
                 else{
-                    nuevoCliente(cliente);
-                    opcionesCliente.add(cliente);
-                    model = new DefaultComboBoxModel(opcionesCliente);
-                    cmbCliente.setModel(model);
-                    ventas.filtrosCliente.add(cliente);
+                    if(razonSocial.equals("")){
+                        razonSocial = "RS";
+                    }
+                    if(nombreComercial.equals("")){
+                        nombreComercial = "NC";
+                    }
+                    opcionesNombreComercial.add(nombreComercial);
+                    opcionesRazonSocial.add(razonSocial);
+                    opcionesCliente.add(nombreComercial + "-" + razonSocial);
+                    nuevoCliente(nombreComercial, razonSocial);
+                    modelCliente = new DefaultComboBoxModel(opcionesCliente);
+                    //modelRazonSocial = new DefaultComboBoxModel(opcionesRazonSocial);
+                    cmbCliente.setModel(modelCliente);
+                    //cmbRazonSocial.setModel(modelRazonSocial);
+                    ventas.filtrosCliente.add(nombreComercial);
                     ventas.actualizarFiltro();
                 }
             }
@@ -1380,35 +1459,67 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 JOptionPane.showMessageDialog(null, "No has seleccionado un cliente");
             }
             else{
-                String cliente = JOptionPane.showInputDialog(
+                String nombreComercial = null;
+                do{
+                    nombreComercial = JOptionPane.showInputDialog(
                     this, 
-                    "Nuevo nombre del nuevo cliente:", 
-                    "Modificar Cliente", 
+                    "Nuevo Nombre Comercial del cliente:", 
+                    "Agregar Nuevo Nombre Comercial", 
                     JOptionPane.INFORMATION_MESSAGE);
-                if(cliente != null){
-                    cliente = cliente.toUpperCase();
+                    if(nombreComercial.contains("'")){
+                        JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
+                                + "Por favor evita usarlo");
+                    }
+                }while(nombreComercial.contains("'"));
+                String razonSocial = null;
+                do{
+                    razonSocial = JOptionPane.showInputDialog(
+                        this, 
+                        "Nueva Razón Social del cliente:", 
+                        "Agregar Nueva Razón Social", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                    if(razonSocial.contains("'")){
+                        JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
+                                + "Por favor evita usarlo");
+                    }
+                }while(razonSocial.contains("'"));
+                if(nombreComercial != null && razonSocial != null){
+                    nombreComercial = nombreComercial.toUpperCase();
+                    razonSocial = razonSocial.toUpperCase();
                     boolean iguales = false;
                     for(int i = 0; i < opcionesCliente.size(); i++){
-                        if(opcionesCliente.get(i).equals(cliente)){
+                        if(opcionesNombreComercial.get(i).equals(nombreComercial) && opcionesRazonSocial.get(i).equals(razonSocial)){
                             iguales = true;
                         }
                     }
-
-                    if(cliente.equals("")){
-                        JOptionPane.showMessageDialog(null, "No es un nombre de cliente valido");
+                    if(nombreComercial.equals("") && razonSocial.equals("")){
+                        JOptionPane.showMessageDialog(null, "Debes capturar al menos uno de los dos.\n"
+                            + "Nombre Comercial o Razón Social");
                     }
                     else if(iguales){
-                        JOptionPane.showMessageDialog(null, "El cliente ya existe");
+                        JOptionPane.showMessageDialog(null, "Ese conjunto de Nombre Comercial y Razón Social ya existen");
                     }
                     else{
-                        modificarCliente(String.valueOf(cmbCliente.getSelectedItem()), cliente);
+                        if(razonSocial.equals("")){
+                            razonSocial = "RS";
+                        }
+                        if(nombreComercial.equals("")){
+                            nombreComercial = "NC";
+                        }
+                        modificarCliente(nombreComercial, razonSocial);
                         ventas.filtrosCliente.remove(cmbCliente.getSelectedItem());
-                        ventas.filtrosCliente.add(cliente);
+                        ventas.filtrosCliente.add(nombreComercial);
                         ventas.actualizarFiltro();
+                        opcionesNombreComercial.remove(cmbCliente.getSelectedIndex());
+                        opcionesNombreComercial.add(nombreComercial);
+                        opcionesRazonSocial.remove(cmbCliente.getSelectedIndex());
+                        opcionesRazonSocial.add(razonSocial);
                         opcionesCliente.remove(cmbCliente.getSelectedItem());
-                        opcionesCliente.add(cliente);
-                        model = new DefaultComboBoxModel(opcionesCliente);
-                        cmbCliente.setModel(model);
+                        opcionesCliente.add(nombreComercial + "-" + razonSocial);
+                        modelCliente = new DefaultComboBoxModel(opcionesCliente);
+                        cmbCliente.setModel(modelCliente);
+                        //modelRazonSocial = new DefaultComboBoxModel(opcionesRazonSocial);
+                        //cmbRazonSocial.setModel(modelRazonSocial);
                     }
                 }
             }
@@ -1509,6 +1620,17 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+    }
+
+    private int buscar(String regex){ 
+        Pattern p = Pattern.compile(".*" + regex.toUpperCase() + ".*");
+        int i;
+        for (i = 0; i < opcionesCliente.size(); i++){
+            if (p.matcher(opcionesNombreComercial.get(i)).matches() || p.matcher(opcionesRazonSocial.get(i)).matches()) {
+              return i;
+            }
+        }
+        return 0;
     }
     
 }
