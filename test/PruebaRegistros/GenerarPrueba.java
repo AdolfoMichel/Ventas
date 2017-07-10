@@ -2,7 +2,7 @@
  * Autor: Adolfo Michel
  * Crear 100 registros para probar la funcionalidad del programa y eficiencia de los filtros
  */
-package ventas;
+package PruebaRegistros;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -12,6 +12,7 @@ import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
+import ventas.Login;
 
 public class GenerarPrueba {
     

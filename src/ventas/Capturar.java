@@ -4,12 +4,13 @@
  */
 package ventas;
 
+import ventas.Utilerias.TableColumnAdjuster;
 import datechooser.beans.DateChooserCombo;
-import datechooser.model.multiple.Period;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,6 +22,12 @@ import java.util.Vector;
 import java.util.logging.*;
 import java.util.regex.Pattern;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
+import ventas.Utilerias.SpinnerEditor;
 
 public class Capturar extends JFrame implements ActionListener, Runnable{
 
@@ -29,21 +36,22 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     int folio;
     Filas f = new Filas();
     
-    static final String noHayRuta = "No hay archivo seleccionado";
+    private static final String NOHAYRUTA = "No hay archivo seleccionado";
 
     Hashtable<Integer,Integer> hstCliente = new Hashtable<>();
-    Hashtable<String,String> hstArchivoCotizacion = new Hashtable<>();
-    Hashtable<String,String> hstArchivoOrdenCompra = new Hashtable<>();
-    Hashtable<String,String> hstFechaOrdenGINSATEC = new Hashtable<>();
-    Hashtable<String,String> hstFechaFactura = new Hashtable<>();
+    Hashtable<String,String> hstCotizacion = new Hashtable<>();
+    Hashtable<String,String> hstOrdenCompra = new Hashtable<>();
+    Hashtable<String,String> hstFolio = new Hashtable<>();
+    Hashtable<String,String[]> hstOrdenGINSATEC = new Hashtable<>();
+    Hashtable<String,String[]> hstFactura = new Hashtable<>();
     
     JPanel pnlPrimero = new JPanel();
     JLabel lblFechaAutorizacion = new JLabel("Fecha Autorizacion:");
     DateChooserCombo dccFechaAutorizacion = new DateChooserCombo();
     
-    JLabel lblOrdenCompra = new JLabel("Orden de Compra:", SwingConstants.RIGHT);
+    JLabel lblOrdenCompra = new JLabel("<html><p align=\"right\">Orden de<br>Compra:</p></html>", SwingConstants.RIGHT);
     JTextField txtOrdenCompra = new JTextField();
-    JTextField txtArchivoOrdenCompra = new JTextField();
+    JTextField txtArchivoOrdenCompra = new JTextField(NOHAYRUTA);
     JButton btnArchivoOrdenCompra = new JButton("Agregar Archivo");
     JButton btnAgregarOrdenCompra = new JButton("Agregar");
     JButton btnEliminarOrdenCompra = new JButton("Eliminar");
@@ -53,7 +61,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     
     JLabel lblCotizacion = new JLabel("Cotización:", SwingConstants.RIGHT);
     JTextField txtCotizacion = new JTextField();
-    JTextField txtArchivoCotizacion = new JTextField();
+    JTextField txtArchivoCotizacion = new JTextField(NOHAYRUTA);
     JButton btnArchivoCotizacion = new JButton("Agregar Archivo");
     JButton btnAgregarCotizacion = new JButton("Agregar");
     JButton btnEliminarCotizacion = new JButton("Eliminar");
@@ -61,8 +69,10 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     JList lstCotizacion = new JList(dlmCotizacion);
     JScrollPane pnlListaCotizacion = new JScrollPane(lstCotizacion);
     
-    JLabel lblFolio = new JLabel("Folio de servicio:", SwingConstants.RIGHT);
+    JLabel lblFolio = new JLabel("<html><p align=\"right\">Folio de<br>servicio:</p></html>", SwingConstants.RIGHT);
     JTextField txtFolio = new JTextField();
+    JTextField txtArchivoFolio = new JTextField(NOHAYRUTA);
+    JButton btnArchivoFolio = new JButton("Agregar Archivo");
     JButton btnAgregarFolio = new JButton("Agregar");
     JButton btnEliminarFolio = new JButton("Eliminar");
     DefaultListModel dlmFolio = new DefaultListModel();
@@ -71,18 +81,22 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     
     JLabel lblFactura = new JLabel("Factura:", SwingConstants.RIGHT);
     JTextField txtFactura = new JTextField();
-    JLabel lblFechaFactura = new JLabel("Fecha Factura:", SwingConstants.RIGHT);
+    JLabel lblFechaFactura = new JLabel("<html><p align=\"right\">Fecha<br>Factura:</p></html>", SwingConstants.RIGHT);
     DateChooserCombo dccFechaFactura = new DateChooserCombo();
+    JTextField txtArchivoFactura = new JTextField(NOHAYRUTA);
+    JButton btnArchivoFactura = new JButton("Agregar Archivo");
     JButton btnAgregarFactura = new JButton("Agregar");
     JButton btnEliminarFactura = new JButton("Eliminar");
     DefaultListModel dlmFactura = new DefaultListModel();
     JList lstFactura = new JList(dlmFactura);
     JScrollPane pnlListaFactura = new JScrollPane(lstFactura);
     
-    JLabel lblOrdenGINSATEC = new JLabel("Orden de Compra GINSATEC:", SwingConstants.RIGHT);
+    JLabel lblOrdenGINSATEC = new JLabel("<html><p align=\"right\">Orden<br>GINSATEC:</p></html>", SwingConstants.RIGHT);
     JTextField txtOrdenGINSATEC = new JTextField();
-    JLabel lblFechaOrdenGINSATEC = new JLabel("Fecha Orden GINSATEC:", SwingConstants.RIGHT);
+    JLabel lblFechaOrdenGINSATEC = new JLabel("<html><p align=\"right\">Fecha Orden<br>GINSATEC:</p></html>", SwingConstants.RIGHT);
     DateChooserCombo dccFechaOrdenGINSATEC = new DateChooserCombo();
+    JTextField txtArchivoOrdenGINSATEC = new JTextField(NOHAYRUTA);
+    JButton btnArchivoOrdenGINSATEC = new JButton("Agregar Archivo");
     JButton btnAgregarOrdenGINSATEC = new JButton("Agregar");
     JButton btnEliminarOrdenGINSATEC = new JButton("Eliminar");
     DefaultListModel dlmOrdenGINSATEC = new DefaultListModel();
@@ -93,11 +107,8 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     Vector<String> opcionesNombreComercial;
     Vector<String> opcionesRazonSocial;
     JLabel lblCliente = new JLabel("Nombre Comercial:");
-    //JLabel lblRazonSocial = new JLabel("Razón Social:");
     DefaultComboBoxModel modelCliente;
     JComboBox cmbCliente;
-    //DefaultComboBoxModel modelRazonSocial;
-    //JComboBox cmbRazonSocial;
     JButton btnBuscarCliente = new JButton("Buscar");
     JButton btnNuevoCliente = new JButton("Agregar Nuevo");
     JButton btnModificarCliente = new JButton("Modificar");
@@ -124,7 +135,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     JLabel lblFechaRecibido = new JLabel("Fecha Recibido:", SwingConstants.RIGHT);
     DateChooserCombo dccFechaRecibido = new DateChooserCombo();
     
-    Vector<String> opcionesVendedor; // = {"Mario Gonzalez", "Marco Padilla", "Daniel Martinez", "Rosario Arellano", "Alberto Lomeli", "Mariano Ruiz"};
+    Vector<String> opcionesVendedor;
     JLabel lblVendedor = new JLabel("Vendedor:", SwingConstants.RIGHT);
     JComboBox cmbVendedor;
     
@@ -143,9 +154,11 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     JLabel lblFechaVencimiento = new JLabel("Fecha Vencimiento Pago:", SwingConstants.RIGHT);
     DateChooserCombo dccFechaVencimiento = new DateChooserCombo();
     
-    String[] opcionesConceptoVenta = {"Sistemas", "Servicio", "Poliza", "Refacciones", "Reparaciones"};
-    JLabel lblConceptoVenta = new JLabel("Concepto de Venta:", SwingConstants.RIGHT);
-    JComboBox cmbConceptoVenta = new JComboBox(opcionesConceptoVenta);
+    String[] opcionesConceptoVenta = {  "Automatización", "Control de Accesos", "CCTV", "Detección de Incendios", "Sistemas de Seguridad", 
+                                        "Paciente-Enfermera", "Supresión de Incendios", "Viaticos", "Canalizaciones y cableados", 
+                                        "Programación y puesta en marcha", "Mano de Obra", "Poliza", "Refacciones", "Reparaciones", "Varios"};
+    JLabel lblConceptoVenta = new JLabel("Concepto de Venta:");
+    JTable tblConceptoVenta;
     
     String[] opcionesStatus = {"Pendiente", "Activa", "Pagada", "No pagada", "Cancelada"};
     JLabel lblStatus = new JLabel("Status:", SwingConstants.RIGHT);
@@ -161,8 +174,8 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         super("Registro de Ventas - Nuevo Registro");
         inicializarVentana();
         nuevo = true;
-        txtArchivoOrdenCompra.setText(noHayRuta);
-        txtArchivoCotizacion.setText(noHayRuta);
+        //txtArchivoOrdenCompra.setText(NOHAYRUTA);
+        //txtArchivoCotizacion.setText(NOHAYRUTA);
         txtTasaCambio.setText("20.00");
         ventas = ref;
     }
@@ -172,110 +185,150 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         inicializarVentana();
         CargarDatos(folioVenta);
         nuevo = false;
-        txtArchivoOrdenCompra.setText(noHayRuta);
-        txtArchivoCotizacion.setText(noHayRuta);
+        //txtArchivoOrdenCompra.setText(NOHAYRUTA);
+        //txtArchivoCotizacion.setText(NOHAYRUTA);
         ventas = ref;
         folio = folioVenta;
     }
     
-    public void inicializarVentana(){
+    public final void inicializarVentana(){
     	this.setLocationRelativeTo(null);
         setExtendedState(MAXIMIZED_BOTH);
         
         opcionesVendedor = cargarVendedores();
-        cmbVendedor = new JComboBox(opcionesVendedor);
+        cmbVendedor = new JComboBox( opcionesVendedor);
         cargarClientes();
         modelCliente = new DefaultComboBoxModel(opcionesCliente);
         cmbCliente = new JComboBox(modelCliente);
-        //modelRazonSocial = new DefaultComboBoxModel(opcionesRazonSocial);
-        //cmbRazonSocial = new JComboBox(modelRazonSocial);
         
         pnlPrimero.add(lblFechaAutorizacion);
         pnlPrimero.add(dccFechaAutorizacion);
         pnlPrimero.add(lblCliente);
         pnlPrimero.add(cmbCliente);
-        //pnlPrimero.add(lblRazonSocial);
-        //pnlPrimero.add(cmbRazonSocial);
         pnlPrimero.add(btnBuscarCliente);
         pnlPrimero.add(btnNuevoCliente);
         pnlPrimero.add(btnModificarCliente);
         cmbCliente.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth()/3, 30));
-        //cmbRazonSocial.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth()/5, 30));
         cmbCliente.setMaximumRowCount(20);
-        //cmbRazonSocial.setMaximumRowCount(20);
         
-        JPanel pnlOrdenes = new JPanel(new GridLayout(3,1));
+        JPanel pnlOrdenes = new JPanel(new BorderLayout());
         JPanel pnlComplementarioOrdenes = new JPanel(new GridLayout(1,2,30,10));
+        pnlComplementarioOrdenes.setBorder(new EmptyBorder(30,0,30,0));
         pnlComplementarioOrdenes.add(lblOrdenCompra);
         pnlComplementarioOrdenes.add(txtOrdenCompra);
-        JPanel pnlArchivoOrdenes = new JPanel(new GridLayout(2,1));
-        pnlArchivoOrdenes.add(txtArchivoOrdenCompra);
+        JPanel pnlArchivoOrdenes = new JPanel(new BorderLayout());
+        pnlArchivoOrdenes.add(txtArchivoOrdenCompra, BorderLayout.CENTER);
         txtArchivoOrdenCompra.setEditable(false);
-        pnlArchivoOrdenes.add(btnArchivoOrdenCompra);
-        JPanel pnlBotonesOrdenes = new JPanel(new GridLayout(1,2));
+        pnlArchivoOrdenes.add(btnArchivoOrdenCompra, BorderLayout.EAST);
+        JPanel pnlBotonesOrdenes = new JPanel(new GridLayout(2,1,0,10));
         pnlBotonesOrdenes.add(btnAgregarOrdenCompra);
         pnlBotonesOrdenes.add(btnEliminarOrdenCompra);
-        pnlOrdenes.add(pnlComplementarioOrdenes);
-        pnlOrdenes.add(pnlArchivoOrdenes);
-        pnlOrdenes.add(pnlBotonesOrdenes);
-        JPanel pnlListaOrdenes = new JPanel(new GridLayout(1,2));
-        pnlListaOrdenes.add(pnlOrdenes);
+        pnlOrdenes.add(pnlComplementarioOrdenes, BorderLayout.CENTER);
+        pnlOrdenes.add(pnlArchivoOrdenes, BorderLayout.SOUTH);
+        JPanel pnlListaOrdenes = new JPanel(new GridLayout(1,3,10,10));
         pnlListaOrdenes.add(pnlListaOrdenCompra);
+        pnlListaOrdenes.add(pnlBotonesOrdenes);
+        JPanel pnlCentralOrdenes = new JPanel(new GridLayout(1,2,10,10));
+        pnlCentralOrdenes.add(pnlOrdenes);
+        pnlCentralOrdenes.add(pnlListaOrdenes);
         
-        JPanel pnlCotizaciones = new JPanel(new GridLayout(3,1));
+        JPanel pnlCotizaciones = new JPanel(new BorderLayout());
         JPanel pnlComplementarioCotizaciones = new JPanel(new GridLayout(1,2,30,10));
+        pnlComplementarioCotizaciones.setBorder(new EmptyBorder(30,0,30,0));
         pnlComplementarioCotizaciones.add(lblCotizacion);
         pnlComplementarioCotizaciones.add(txtCotizacion);
-        JPanel pnlArchivoCotizaciones = new JPanel(new GridLayout(2,1));
-        pnlArchivoCotizaciones.add(txtArchivoCotizacion);
+        JPanel pnlArchivoCotizaciones = new JPanel(new BorderLayout());
+        pnlArchivoCotizaciones.add(txtArchivoCotizacion, BorderLayout.CENTER);
         txtArchivoCotizacion.setEditable(false);
-        pnlArchivoCotizaciones.add(btnArchivoCotizacion);
-        JPanel pnlBotonesCotizaciones = new JPanel(new GridLayout(1,2));
+        pnlArchivoCotizaciones.add(btnArchivoCotizacion, BorderLayout.EAST);
+        JPanel pnlBotonesCotizaciones = new JPanel(new GridLayout(2,1,0,10));
         pnlBotonesCotizaciones.add(btnAgregarCotizacion);
         pnlBotonesCotizaciones.add(btnEliminarCotizacion);
-        pnlCotizaciones.add(pnlComplementarioCotizaciones);
-        pnlCotizaciones.add(pnlArchivoCotizaciones);
-        pnlCotizaciones.add(pnlBotonesCotizaciones);
-        JPanel pnlListaCotizaciones = new JPanel(new GridLayout(1,2));
-        pnlListaCotizaciones.add(pnlCotizaciones);
+        pnlCotizaciones.add(pnlComplementarioCotizaciones, BorderLayout.CENTER);
+        pnlCotizaciones.add(pnlArchivoCotizaciones, BorderLayout.SOUTH);
+        JPanel pnlListaCotizaciones = new JPanel(new GridLayout(1,2,10,10));
         pnlListaCotizaciones.add(pnlListaCotizacion);
+        pnlListaCotizaciones.add(pnlBotonesCotizaciones);
+        JPanel pnlCentralCotizaciones = new JPanel(new GridLayout(1,2,10,10));
+        pnlCentralCotizaciones.add(pnlCotizaciones);
+        pnlCentralCotizaciones.add(pnlListaCotizaciones);
         
-        JPanel pnlFolios = new JPanel(new GridLayout(2,2,30,10));
-        pnlFolios.add(lblFolio);
-        pnlFolios.add(txtFolio);
-        pnlFolios.add(btnAgregarFolio);
-        pnlFolios.add(btnEliminarFolio);
+        JPanel pnlFolios = new JPanel(new BorderLayout());
+        JPanel pnlComplementarioFolios = new JPanel(new GridLayout(1,2,30,10));
+        pnlComplementarioFolios.setBorder(new EmptyBorder(30,0,30,0));
+        pnlComplementarioFolios.add(lblFolio);
+        pnlComplementarioFolios.add(txtFolio);
+        JPanel pnlArchivoFolios = new JPanel(new BorderLayout());
+        pnlArchivoFolios.add(txtArchivoFolio, BorderLayout.CENTER);
+        txtArchivoFolio.setEditable(false);
+        pnlArchivoFolios.add(btnArchivoFolio, BorderLayout.EAST);
+        JPanel pnlBotonesFolios = new JPanel(new GridLayout(2,1,10,10));
+        pnlBotonesFolios.add(btnAgregarFolio);
+        pnlBotonesFolios.add(btnEliminarFolio);
+        pnlFolios.add(pnlComplementarioFolios, BorderLayout.CENTER);
+        pnlFolios.add(pnlArchivoFolios, BorderLayout.SOUTH);
         JPanel pnlListaFolios = new JPanel(new GridLayout(1,2,10,10));
-        pnlListaFolios.add(pnlFolios);
         pnlListaFolios.add(pnlListaFolio);
+        pnlListaFolios.add(pnlBotonesFolios);
+        JPanel pnlCentralFolios = new JPanel(new GridLayout(1,2,10,10));
+        pnlCentralFolios.add(pnlFolios);
+        pnlCentralFolios.add(pnlListaFolios);
         
-        JPanel pnlFacturas = new JPanel(new GridLayout(3,2,30,10));
-        pnlFacturas.add(lblFactura);
-        pnlFacturas.add(txtFactura);
-        pnlFacturas.add(lblFechaFactura);
-        pnlFacturas.add(dccFechaFactura);
-        pnlFacturas.add(btnAgregarFactura);
-        pnlFacturas.add(btnEliminarFactura);
+        JPanel pnlFacturas = new JPanel(new BorderLayout());
+        JPanel pnlComplementarioFacturas = new JPanel(new GridLayout(2,2,30,10));
+        pnlComplementarioFacturas.setBorder(new EmptyBorder(10,0,10,0));
+        pnlComplementarioFacturas.add(lblFactura);
+        pnlComplementarioFacturas.add(txtFactura);
+        // pnlFechaFacturas = new JPanel(new GridLayout(1,2,30,10));
+        pnlComplementarioFacturas.add(lblFechaFactura);
+        pnlComplementarioFacturas.add(dccFechaFactura);
+        JPanel pnlArchivoFacturas = new JPanel(new BorderLayout());
+        pnlArchivoFacturas.add(txtArchivoFactura, BorderLayout.CENTER);
+        txtArchivoFactura.setEditable(false);
+        pnlArchivoFacturas.add(btnArchivoFactura, BorderLayout.EAST);
+        JPanel pnlBotonesFacturas = new JPanel(new GridLayout(2,1,10,10));
+        pnlBotonesFacturas.add(btnAgregarFactura);
+        pnlBotonesFacturas.add(btnEliminarFactura);
+        pnlFacturas.add(pnlComplementarioFacturas, BorderLayout.CENTER);
+        //pnlFacturas.add(pnlFechaFacturas, BorderLayout.CENTER);
+        pnlFacturas.add(pnlArchivoFacturas, BorderLayout.SOUTH);
         JPanel pnlListaFacturas = new JPanel(new GridLayout(1,2,10,10));
-        pnlListaFacturas.add(pnlFacturas);
         pnlListaFacturas.add(pnlListaFactura);
+        pnlListaFacturas.add(pnlBotonesFacturas);
+        JPanel pnlCentralFacturas = new JPanel(new GridLayout(1,2,10,10));
+        pnlCentralFacturas.add(pnlFacturas);
+        pnlCentralFacturas.add(pnlListaFacturas);
         
-        JPanel pnlOrdenesGINSATEC = new JPanel(new GridLayout(3,2,30,10));
-        pnlOrdenesGINSATEC.add(lblOrdenGINSATEC);
-        pnlOrdenesGINSATEC.add(txtOrdenGINSATEC);
-        pnlOrdenesGINSATEC.add(lblFechaOrdenGINSATEC);
-        pnlOrdenesGINSATEC.add(dccFechaOrdenGINSATEC);
-        pnlOrdenesGINSATEC.add(btnAgregarOrdenGINSATEC);
-        pnlOrdenesGINSATEC.add(btnEliminarOrdenGINSATEC);
+        JPanel pnlOrdenesGINSATEC = new JPanel(new BorderLayout());
+        JPanel pnlComplementarioOrdenesGINSATEC = new JPanel(new GridLayout(2,2,30,10));
+        pnlComplementarioOrdenesGINSATEC.setBorder(new EmptyBorder(10,0,10,0));
+        pnlComplementarioOrdenesGINSATEC.add(lblOrdenGINSATEC);
+        pnlComplementarioOrdenesGINSATEC.add(txtOrdenGINSATEC);
+        //JPanel pnlFechaOrdenesGINSATEC = new JPanel(new GridLayout(1,2,30,10));
+        pnlComplementarioOrdenesGINSATEC.add(lblFechaOrdenGINSATEC);
+        pnlComplementarioOrdenesGINSATEC.add(dccFechaOrdenGINSATEC);
+        JPanel pnlArchivoOrdenesGINSATEC = new JPanel(new BorderLayout());
+        pnlArchivoOrdenesGINSATEC.add(txtArchivoOrdenGINSATEC, BorderLayout.CENTER);
+        txtArchivoOrdenGINSATEC.setEditable(false);
+        pnlArchivoOrdenesGINSATEC.add(btnArchivoOrdenGINSATEC, BorderLayout.EAST);
+        JPanel pnlBotonesOrdenesGINSATEC = new JPanel(new GridLayout(2,1,10,10));
+        pnlBotonesOrdenesGINSATEC.add(btnAgregarOrdenGINSATEC);
+        pnlBotonesOrdenesGINSATEC.add(btnEliminarOrdenGINSATEC);
+        pnlOrdenesGINSATEC.add(pnlComplementarioOrdenesGINSATEC, BorderLayout.CENTER);
+        //pnlOrdenesGINSATEC.add(pnlFechaOrdenesGINSATEC, BorderLayout.CENTER);
+        pnlOrdenesGINSATEC.add(pnlArchivoOrdenesGINSATEC, BorderLayout.SOUTH);
         JPanel pnlListaOrdenesGINSATEC = new JPanel(new GridLayout(1,2,10,10));
-        pnlListaOrdenesGINSATEC.add(pnlOrdenesGINSATEC);
         pnlListaOrdenesGINSATEC.add(pnlListaOrdenGINSATEC);
+        pnlListaOrdenesGINSATEC.add(pnlBotonesOrdenesGINSATEC);
+        JPanel pnlCentralOrdenesGINSATEC = new JPanel(new GridLayout(1,2,10,10));
+        pnlCentralOrdenesGINSATEC.add(pnlOrdenesGINSATEC);
+        pnlCentralOrdenesGINSATEC.add(pnlListaOrdenesGINSATEC);
         
-        JPanel pnlFinanciero = new JPanel(new GridLayout(6,2,50,0));
+        JPanel pnlFinanciero = new JPanel(new GridLayout(5,2,10,5));
         pnlFinanciero.add(lblVendedor);
         pnlFinanciero.add(cmbVendedor);
         pnlFinanciero.add(lblImporte);
-        JPanel pnlImporte = new JPanel(new GridLayout(1,2));
+        JPanel pnlImporte = new JPanel(new GridLayout(1,2,10,0));
         pnlImporte.add(txtImporte);
         pnlImporte.add(cmbMoneda);
         pnlFinanciero.add(pnlImporte);
@@ -285,32 +338,49 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlFinanciero.add(txtImporteFacturado);
         pnlFinanciero.add(lblTasaCambio);
         pnlFinanciero.add(txtTasaCambio);
-        pnlFinanciero.add(lblGM);
-        JPanel pnlGM = new JPanel(new GridLayout(1,2));
-        pnlGM.add(txtGM);
-        pnlGM.add(lblGMporciento);
-        pnlFinanciero.add(pnlGM);
+        txtImportePendiente.setEditable(false);
         
-        
-        JPanel pnlCheckBox = new JPanel(new GridLayout(3,2,50,0));
+        JPanel pnlCheckBox = new JPanel(new GridLayout(4,2,50,0));
+        pnlCheckBox.add(lblStatus);
+        pnlCheckBox.add(cmbStatus);
         pnlCheckBox.add(lblRecibido);
         pnlCheckBox.add(chkRecibido);
         pnlCheckBox.add(lblInstalacion);
         pnlCheckBox.add(chkInstalacion);
         pnlCheckBox.add(lblCanalizacion);
         pnlCheckBox.add(chkCanalizacion);
-        JPanel pnlDivision = new JPanel(new GridLayout(1,2));
-        JPanel pnlDiasCredito = new JPanel(new GridLayout(3,2,50,10));
-        pnlDiasCredito.add(lblConceptoVenta);
-        pnlDiasCredito.add(cmbConceptoVenta);
-        pnlDiasCredito.add(lblDiasCredito);
-        pnlDiasCredito.add(txtDiasCredito);
-        pnlDiasCredito.add(lblStatus);
-        pnlDiasCredito.add(cmbStatus);
-        pnlDivision.add(pnlCheckBox);
-        pnlDivision.add(pnlDiasCredito);
+        JPanel pnlDivision = new JPanel(new GridLayout(1,2,10,0));
         
-        JPanel pnlFechas = new JPanel(new GridLayout(3,2,50,0));
+        int rows = opcionesConceptoVenta.length;
+        Object[][] lista = new Object[rows][2];
+        for(int i = 0; i < rows; i++){
+            lista[i][0] = opcionesConceptoVenta[i];
+            lista[i][1] = 0;
+        }
+        Object[] encabezados = {"Sistema", "Valor (%)"};
+        tblConceptoVenta = new JTable(lista, encabezados);
+        tblConceptoVenta.setDefaultEditor(Object.class, null);
+        
+        TableColumnModel tcm = tblConceptoVenta.getColumnModel();
+        TableColumn tc = tcm.getColumn(1);
+        tc.setCellEditor(new SpinnerEditor());
+        
+        JPanel pnlConcepto = new JPanel(new BorderLayout());
+        pnlConcepto.add(lblConceptoVenta, BorderLayout.PAGE_START);
+        pnlConcepto.add(new JScrollPane(tblConceptoVenta), BorderLayout.CENTER);
+        
+        
+        pnlDivision.add(pnlCheckBox);
+        pnlDivision.add(pnlConcepto);
+        
+        JPanel pnlFechas = new JPanel(new GridLayout(5,2,10,5));
+        pnlFechas.add(lblGM);
+        JPanel pnlGM = new JPanel(new GridLayout(1,2,10,0));
+        pnlGM.add(txtGM);
+        pnlGM.add(lblGMporciento);
+        pnlFechas.add(pnlGM);
+        pnlFechas.add(lblDiasCredito);
+        pnlFechas.add(txtDiasCredito);
         pnlFechas.add(lblFechaEntrega);
         pnlFechas.add(dccFechaEntrega);
         pnlFechas.add(lblFechaRecibido);
@@ -319,11 +389,11 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlFechas.add(dccFechaVencimiento);
         
         JPanel pnlFormulariosListas = new JPanel(new GridLayout(4,2,10,10));
-        pnlFormulariosListas.add(pnlListaOrdenes);
-        pnlFormulariosListas.add(pnlListaFacturas);
-        pnlFormulariosListas.add(pnlListaCotizaciones);
-        pnlFormulariosListas.add(pnlListaOrdenesGINSATEC);
-        pnlFormulariosListas.add(pnlListaFolios);
+        pnlFormulariosListas.add(pnlCentralOrdenes);
+        pnlFormulariosListas.add(pnlCentralFacturas);
+        pnlFormulariosListas.add(pnlCentralCotizaciones);
+        pnlFormulariosListas.add(pnlCentralOrdenesGINSATEC);
+        pnlFormulariosListas.add(pnlCentralFolios);
         pnlFormulariosListas.add(pnlFinanciero);
         pnlFormulariosListas.add(pnlDivision);
         pnlFormulariosListas.add(pnlFechas);
@@ -332,8 +402,8 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         pnlPrincipal.add(pnlFormulariosListas, BorderLayout.CENTER);
         
         JPanel pnlNotas = new JPanel(new BorderLayout());
-        txtaNotas.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth(), 60));
         JScrollPane scrollNotas = new JScrollPane(txtaNotas);
+        txtaNotas.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth(), 60));
         pnlNotas.add(lblNotas, BorderLayout.PAGE_START);
         pnlNotas.add(scrollNotas, BorderLayout.CENTER);
         pnlPrincipal.add(pnlNotas, BorderLayout.SOUTH);
@@ -357,17 +427,70 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
         btnArchivoCotizacion.addActionListener(this);
         btnAgregarCotizacion.addActionListener(this);
         btnEliminarCotizacion.addActionListener(this);
+        btnArchivoFactura.addActionListener(this);
         btnAgregarFactura.addActionListener(this);
         btnEliminarFactura.addActionListener(this);
+        btnArchivoOrdenGINSATEC.addActionListener(this);
         btnAgregarOrdenGINSATEC.addActionListener(this);
         btnEliminarOrdenGINSATEC.addActionListener(this);
+        btnArchivoFolio.addActionListener(this);
         btnAgregarFolio.addActionListener(this);
         btnEliminarFolio.addActionListener(this);
         btnModificarCliente.addActionListener(this);
-        //cmbCliente.addActionListener(this);
-        //cmbRazonSocial.addActionListener(this);
+        txtImporte.getDocument().addDocumentListener(new DocumentListener(){
+            @Override
+            public void changedUpdate(DocumentEvent e){
+                warn();
+            }
+            @Override
+            public void removeUpdate(DocumentEvent e){
+                warn();
+            }
+            @Override
+            public void insertUpdate(DocumentEvent e){
+                warn();
+            }
+
+            public void warn() {
+                 try{
+                    txtImportePendiente.setText(String.valueOf(Float.parseFloat(txtImporte.getText()) - Float.parseFloat(txtImporteFacturado.getText())));
+                }
+                catch(NumberFormatException ex){
+                    Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
+                    txtImportePendiente.setText("0");
+                }
+            }
+        
+        });
+        txtImporteFacturado.getDocument().addDocumentListener(new DocumentListener(){
+            @Override
+            public void changedUpdate(DocumentEvent e){
+                warn();
+            }
+            @Override
+            public void removeUpdate(DocumentEvent e){
+                warn();
+            }
+            @Override
+            public void insertUpdate(DocumentEvent e){
+                warn();
+            }
+
+            public void warn() {
+                 try{
+                    if(!txtImporte.getText().isEmpty() && !txtImporteFacturado.getText().isEmpty()) 
+                    txtImportePendiente.setText(String.valueOf(Float.parseFloat(txtImporte.getText()) - Float.parseFloat(txtImporteFacturado.getText())));
+                }
+                catch(NumberFormatException ex){
+                    Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
+                    txtImportePendiente.setText("0");
+                }
+            }
+        
+        });
         
         this.addWindowListener(new WindowAdapter(){
+            @Override
             public void windowClosing(WindowEvent e)
             {
                 ventas.actualizarFiltro();
@@ -379,28 +502,31 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     }
     
     public Connection ConectarDB(){
-        //new Servidor().arrancarServidor();
+        Servidor s = new Servidor();
+        s.arrancarServidor();
+        String ip = s.obtenerIP();
+        System.out.println("IP obtenida: " + ip);
         Connection c = null;
         try {
-            Class.forName("org.postgresql.Driver"); //jdbc:postgresql://localhost:5432/sistemabasedatos
-            //c = DriverManager.getConnection("jdbc:postgresql://localhost:5344/SistemaBaseDatos", "Sersitec-Laboratorio", "");
-            c = DriverManager.getConnection("jdbc:postgresql://localhost:3389/VentasDB", "usuario", "Sersitec886");
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println(e.getClass().getName()+": "+e.getMessage());
+            Class.forName("org.postgresql.Driver");
+            c = DriverManager.getConnection("jdbc:postgresql://" + ip + ":3389/VentasDB", "usuario", "Sersitec886");
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
+            if(s.reiniciarServidor()){
+                c = ConectarDB();
+            }
         }
         return c;
     }
     
-    public void CargarDatos(int folioVenta){
+    public final void CargarDatos(int folioVenta){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
             try {
-                int x;
                 comando = c.createStatement();
                 String sql =    "select ventas.*,"
                         +       "(select nombrecomercial from clientes where clientes.idcliente=ventas.cliente) as nombrecomercial,"
@@ -408,27 +534,17 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                         +       " from ventas where folioventa=" + folioVenta;
                 ResultSet consulta = comando.executeQuery(sql);
                 if(consulta.next()){
-                    //java.sql.Date FechaAutorizacion = consulta.getDate("fechaautorizacion");
                     Calendar calendario = Calendar.getInstance();
                     calendario.setTime(consulta.getDate("fechaautorizacion"));
                     dccFechaAutorizacion.setSelectedDate(calendario);
-                    //String OrdenCompra = cargarOrdenesCompra(folioVenta);
                     cargarOrdenesCompra(folioVenta);
-                    //String Cotización = cargarCotizaciones(folioVenta);
                     cargarCotizaciones(folioVenta);
-                    //String FolioServicio = cargarFoliosServicio(folioVenta);
                     cargarFoliosServicio(folioVenta);
-                    //String NombreCliente = consulta.getString("nombrecomercial");
                     cmbCliente.setSelectedItem(consulta.getString("nombrecomercial") + "-" + consulta.getString("razonsocial"));
-                    //String NombreCliente = consulta.getString("nombrecliente");
-                    cmbConceptoVenta.setSelectedItem(consulta.getString("conceptoventa"));
-                    //String FechaOrdenCompraGINSATEC = cargarFechasOrdenesCompraGINSATEC(folioVenta);
-                    //String OrdenCompraGINSATEC = cargarOrdenesCompraGINSATEC(folioVenta);
+                    cargarDetalleVenta(folioVenta);
                     cargarOrdenesCompraGINSATEC(folioVenta);
-                    //java.sql.Date FechaEntrega = consulta.getDate("fechaentrega");
                     calendario.setTime(consulta.getDate("fechaentrega"));
                     dccFechaEntrega.setSelectedDate(calendario);
-                    //java.sql.Date FechaRecibido = consulta.getDate("fecharecibido");
                     calendario.setTime(consulta.getDate("fecharecibido"));
                     dccFechaRecibido.setSelectedDate(calendario);
                     if(consulta.getBoolean("materialrecibido")){
@@ -440,45 +556,32 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     if(consulta.getBoolean("requierecanalizacion")){
                         chkCanalizacion.setSelected(true);
                     }
-                    //String FechaFactura = cargarFechasFacturas(folioVenta);
-                    //String Factura = cargarFacturas(folioVenta);
                     cargarFacturas(folioVenta);
-                    //String Vendedor = consulta.getString("vendedor");
                     cmbVendedor.setSelectedItem(consulta.getString("vendedor"));
-                    //float Importe = consulta.getFloat("importe");
                     txtImporte.setText(Float.toString(consulta.getFloat("importe")));
-                    //float ImportePendiente = consulta.getFloat("importePendiente");
                     txtImportePendiente.setText(Float.toString(consulta.getFloat("importependiente")));
-                    //float ImporteFacturado = consulta.getFloat("importeFacturado");
                     txtImporteFacturado.setText(Float.toString(consulta.getFloat("importefacturado")));
-                    //String TipoMoneda = consulta.getString("tipomoneda");
                     cmbMoneda.setSelectedItem(consulta.getString("tipomoneda"));
-                    //float TasaCambio = consulta.getFloat("tasacambio");
                     txtTasaCambio.setText(Float.toString(consulta.getFloat("tasacambio")));
-                    //float GM = consulta.getFloat("gm");
                     txtGM.setText(Float.toString(consulta.getFloat("gm")));
-                    //int DiasCredito = consulta.getInt("diascredito");
                     txtDiasCredito.setText(Integer.toString(consulta.getInt("diascredito")));
-                    //java.sql.Date FechaVencimientoPago = consulta.getDate("fechavencimientopago");
                     calendario.setTime(consulta.getDate("fechavencimientopago"));
                     dccFechaVencimiento.setSelectedDate(calendario);
-                    //String Status = consulta.getString("status");
                     cmbStatus.setSelectedItem(consulta.getString("status"));
-                    //String Notas = consulta.getString("notas");
                     txtaNotas.setText(consulta.getString("notas"));
                     comando.close();
                     c.close();
                 }
             } catch (SQLException ex) {
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
     
     public Vector<String> cargarVendedores(){
-        Vector<String> vendedores = new Vector<String>();
+        Vector<String> vendedores = new Vector<>();
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
 
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
@@ -494,22 +597,22 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 comando.close();
                 c.close();
             }
-            catch(Exception ex){
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+            catch(SQLException ex){
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         return vendedores;
     }
     
     public void cargarClientes(){
-        opcionesCliente = new Vector<String>();
+        opcionesCliente = new Vector<>();
         opcionesCliente.add("");
-        opcionesNombreComercial = new Vector<String>();
+        opcionesNombreComercial = new Vector<>();
         opcionesNombreComercial.add("");
-        opcionesRazonSocial = new Vector<String>();
+        opcionesRazonSocial = new Vector<>();
         opcionesRazonSocial.add("");
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
 
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
@@ -530,63 +633,112 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 comando.close();
                 c.close();
             }
-            catch(Exception ex){
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+            catch(SQLException ex){
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
-
+    
+    public void cargarDetalleVenta(int folioVenta){
+        Connection c = ConectarDB();
+        Statement comando;
+        if(c == null){
+            JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
+        }
+        else{
+            try{
+                comando = c.createStatement();
+                String sql = "select * from detalleventa where folioventa=" + folioVenta + ";";
+                ResultSet consulta = comando.executeQuery(sql);
+                if(consulta.next()){
+                    tblConceptoVenta.setValueAt(consulta.getFloat("automatizacion"), 0, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("controlaccesos"), 1, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("cctv"), 2, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("deteccionincendios"), 3, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("sistemasseguridad"), 4, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("pacienteenfermera"), 5, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("supresionincendios"), 6, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("viaticos"), 7, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("canalizacionescableados"), 8, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("programacionpuestaenmarcha"), 9, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("manoobra"), 10, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("poliza"), 11, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("refacciones"), 12, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("reparaciones"), 13, 1);
+                    tblConceptoVenta.setValueAt(consulta.getFloat("varios"), 14, 1);
+                }
+                comando.close();
+                c.close();
+            }
+            catch(SQLException ex){
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    
     public void cargarFoliosServicio(int folioVenta){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
             try {
                 comando = c.createStatement();
-                String sql = "select folioservicio from foliosservicio where folioventa=" + folioVenta;
+                String sql = "select folioservicio, ruta from foliosservicio where folioventa=" + folioVenta;
                 ResultSet consulta = comando.executeQuery(sql);
+                String folioServicio, ruta;
                 while(consulta.next()){
-                    dlmFolio.addElement(consulta.getString("folioservicio"));
+                    folioServicio = consulta.getString("folioservicio");
+                    ruta = consulta.getString("ruta");
+                    if(ruta == null){
+                        ruta = NOHAYRUTA;
+                    }
+                    hstFolio.put(folioServicio, ruta);
+                    dlmFolio.addElement(folioServicio);
                 }
                 comando.close();
                 c.close();
             } catch (SQLException ex) {
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
 
     public void cargarFacturas(int folioVenta){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
             try {
                 comando = c.createStatement();
-                String sql = "select factura, fecha from facturas where folioventa=" + folioVenta;
+                String sql = "select factura, fecha, ruta from facturas where folioventa=" + folioVenta;
                 ResultSet consulta = comando.executeQuery(sql);
-                String factura = "", fecha = "";
+                String factura; 
+                String[] auxFactura = new String[2];
                 while(consulta.next()){
                     factura = consulta.getString("factura");
-                    fecha = String.valueOf(consulta.getDate("fecha"));
-                    hstFechaFactura.put(factura, fecha);
+                    auxFactura[0] = String.valueOf(consulta.getDate("fecha"));
+                    auxFactura[1] = consulta.getString("ruta");
+                    if(auxFactura[1] == null){
+                        auxFactura[1] = NOHAYRUTA;
+                    }
+                    hstFactura.put(factura, auxFactura);
                     dlmFactura.addElement(factura);
                 }
                 comando.close();
                 c.close();
             } catch (SQLException ex) {
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
 
     public void cargarOrdenesCompra(int folioVenta){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
@@ -595,53 +747,58 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 comando = c.createStatement();
                 String sql = "select ordencompra, ruta from ordenescompra where folioventa=" + folioVenta;
                 ResultSet consulta = comando.executeQuery(sql);
-                String orden = "", ruta = "";
+                String orden, ruta;
                 while(consulta.next()){
                     orden = consulta.getString("ordencompra");
                     ruta = consulta.getString("ruta");
                     if(ruta == null){
-                        ruta = noHayRuta;
+                        ruta = NOHAYRUTA;
                     }
-                    hstArchivoOrdenCompra.put(orden, ruta);
+                    hstOrdenCompra.put(orden, ruta);
                     dlmOrdenCompra.addElement(orden);
                 }
                 comando.close();
                 c.close();
             } catch (SQLException ex) {
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
 
     public void cargarOrdenesCompraGINSATEC(int folioVenta){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
             try {
                 comando = c.createStatement();
-                String sql = "select ordencompra, fecha from ordenescompraginsatec where folioventa=" + folioVenta;
+                String sql = "select ordencompra, fecha, ruta from ordenescompraginsatec where folioventa=" + folioVenta;
                 ResultSet consulta = comando.executeQuery(sql);
-                String orden = "", fecha = "";
+                String orden;
+                String[] auxOrden = new String[2];
                 while(consulta.next()){
                     orden = consulta.getString("ordencompra");
-                    fecha = String.valueOf(consulta.getDate("fecha"));
-                    hstFechaOrdenGINSATEC.put(orden, fecha);
+                    auxOrden[0] = String.valueOf(consulta.getDate("fecha"));
+                    auxOrden[1] = consulta.getString("ruta");
+                    if(auxOrden[1] == null){
+                        auxOrden[1] = NOHAYRUTA;
+                    }
+                    hstOrdenGINSATEC.put(orden, auxOrden);
                     dlmOrdenGINSATEC.addElement(orden);
                 }
                 comando.close();
                 c.close();
             } catch (SQLException ex) {
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
 
     public void cargarCotizaciones(int folioVenta){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
 
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
@@ -651,27 +808,27 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 comando = c.createStatement();
                 String sql = "select cotizacion, ruta from cotizaciones where folioventa=" + folioVenta;
                 ResultSet consulta = comando.executeQuery(sql);
-                String cotizacion = "", ruta = "";
+                String cotizacion, ruta;
                 while(consulta.next()){
                     cotizacion = consulta.getString("cotizacion");
                     ruta = consulta.getString("ruta");
                     if(ruta == null){
-                        ruta = noHayRuta;
+                        ruta = NOHAYRUTA;
                     }
-                    hstArchivoCotizacion.put(cotizacion, ruta);
+                    hstCotizacion.put(cotizacion, ruta);
                     dlmCotizacion.addElement(cotizacion);
                 }
                 comando.close();
                 c.close();
             } catch (SQLException ex) {
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
     
     public void nuevoCliente(String nombreComercial, String razonSocial){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
@@ -690,15 +847,15 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 comando.close();
                 c.close();
             }
-            catch(Exception ex){
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+            catch(SQLException ex){
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
     
     public void modificarCliente(String nombreComercial, String razonSocial){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
@@ -711,15 +868,15 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 comando.close();
                 c.close();
             }
-            catch(Exception ex){
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+            catch(SQLException ex){
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
     
     public void nuevoRegistro(){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
@@ -727,8 +884,10 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
             try {
                 int id;
                 int folioVenta;
-                comando = c.createStatement();
+                String ruta;
+                String[] aux;
                 String sql = "select max(folioventa) from ventas";
+                comando = c.createStatement();
                 ResultSet consulta = comando.executeQuery(sql);
                 folioVenta = 0;
                 if(consulta.next()){
@@ -736,13 +895,26 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 }
                 folio = folioVenta;
                 
-                sql = "insert into ventas values(" + folioVenta + ",'" + dccFechaAutorizacion.getText() + "','" 
-                        + hstCliente.get(cmbCliente.getSelectedIndex()) + "','" + cmbConceptoVenta.getSelectedItem() + "','" + dccFechaEntrega.getText() + "','" + dccFechaRecibido.getText() 
+                sql = "insert into ventas values(" + folioVenta + ",'" + dccFechaAutorizacion.getText() + "'," 
+                        + hstCliente.get(cmbCliente.getSelectedIndex()) + ",'detalle','" + dccFechaEntrega.getText() + "','" + dccFechaRecibido.getText() 
                         + "','" + chkRecibido.isSelected() + "','" + chkInstalacion.isSelected() + "','" + chkCanalizacion.isSelected() 
                         + "','" + cmbVendedor.getSelectedItem() + "'," + txtImporte.getText() + "," + txtImportePendiente.getText() + ","
                         + txtImporteFacturado.getText() + ",'" + cmbMoneda.getSelectedItem() + "'," + txtTasaCambio.getText() + "," 
                         + txtGM.getText() + "," + txtDiasCredito.getText() + ",'" + dccFechaVencimiento.getText() + "','" 
                         + cmbStatus.getSelectedItem() + "','" + txtaNotas.getText() + "'," + ventas.idUsuario + ")";
+                comando.executeUpdate(sql);
+                
+                sql = "select max(iddetalle) from detalleventa;";
+                consulta = comando.executeQuery(sql);
+                id = 0;
+                if(consulta.next()){
+                    id = consulta.getInt("max") + 1;
+                }
+                sql = "insert into detalleventa values(" + id + ", " + folioVenta;
+                for(int i = 0; i < opcionesConceptoVenta.length; i++){
+                    sql += ", " + tblConceptoVenta.getValueAt(i, 1);
+                }
+                sql += ");";
                 comando.executeUpdate(sql);
                 
                 sql = "select max(idfolio) from foliosservicio";
@@ -752,7 +924,14 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     id = consulta.getInt("max") + 1;
                 }
                 for(int i = 0; i < dlmFolio.getSize(); i++, id++){
-                    sql = "insert into foliosservicio values(" + id + ",'" + dlmFolio.get(i) + "'," + folioVenta + ")";
+                    ruta = hstFolio.get(dlmFolio.get(i).toString());
+                    if(ruta.equals(NOHAYRUTA)){
+                        ruta = "null";
+                    }
+                    else{
+                        ruta = "'" + ruta + "'";
+                    }
+                    sql = "insert into foliosservicio values(" + id + ",'" + dlmFolio.get(i) + "'," + folioVenta + ", " + ruta + ");";
                     comando.executeUpdate(sql);
                 }
                 
@@ -762,10 +941,9 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 if(consulta.next()){
                     id = consulta.getInt("max") + 1;
                 }
-                String ruta = "";
                 for(int i = 0; i < dlmCotizacion.getSize(); i++, id++){
-                    ruta = hstArchivoCotizacion.get(dlmCotizacion.get(i));
-                    if(ruta.equals(noHayRuta)){
+                    ruta = hstCotizacion.get(dlmCotizacion.get(i).toString());
+                    if(ruta.equals(NOHAYRUTA)){
                         ruta = "null";
                     }
                     else{
@@ -782,8 +960,8 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     id = consulta.getInt("max") + 1;
                 }
                 for(int i = 0; i < dlmOrdenCompra.getSize(); i++, id++){
-                    ruta = hstArchivoOrdenCompra.get(dlmOrdenCompra.get(i));
-                    if(ruta.equals(noHayRuta)){
+                    ruta = hstOrdenCompra.get(dlmOrdenCompra.get(i).toString());
+                    if(ruta.equals(NOHAYRUTA)){
                         ruta = "null";
                     }
                     else{
@@ -799,10 +977,15 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 if(consulta.next()){
                     id = consulta.getInt("max") + 1;
                 }
-                String fecha = "";
                 for(int i = 0; i < dlmOrdenGINSATEC.getSize(); i++, id++){
-                    fecha = hstFechaOrdenGINSATEC.get(dlmOrdenGINSATEC.get(i));
-                    sql = "insert into ordenescompraginsatec values(" + id + ",'" + dlmOrdenGINSATEC.get(i) + "'," + folioVenta + ",'" + fecha + "')";
+                    aux = hstOrdenGINSATEC.get(dlmOrdenGINSATEC.get(i).toString());
+                    if(aux[1].equals(NOHAYRUTA)){
+                        aux[1] = "null";
+                    }
+                    else{
+                        aux[1] = "'" + aux[1] +"'";
+                    }
+                    sql = "insert into ordenescompraginsatec values(" + id + ",'" + dlmOrdenGINSATEC.get(i) + "'," + folioVenta + ",'" + aux[0] + "'," + aux[1] + ")";
                     comando.executeUpdate(sql);
                 }
                 
@@ -813,8 +996,14 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     id = consulta.getInt("max") + 1;
                 }
                 for(int i = 0; i < dlmFactura.getSize(); i++, id++){
-                    fecha = hstFechaFactura.get(dlmFactura.get(i));
-                    sql = "insert into facturas values(" + id + ",'" + dlmFactura.get(i) + "'," + folioVenta + ",'" + fecha + "')";
+                    aux = hstFactura.get(dlmFactura.get(i).toString());
+                    if(aux[1].equals(NOHAYRUTA)){
+                        aux[1] = "null";
+                    }
+                    else{
+                        aux[1] = "'" + aux[1] + "'";
+                    }
+                    sql = "insert into facturas values(" + id + ",'" + dlmFactura.get(i) + "'," + folioVenta + ",'" + aux[0] + "'," + aux[1] + ");";
                     comando.executeUpdate(sql);
                 }
                 JOptionPane.showMessageDialog(null, "Registro Exitoso");
@@ -822,23 +1011,22 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 c.close();
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(null, "Ocurrió un error durante el registro");
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
     
     public void modificarRegistro(){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
             try {
-                int id;
                 comando = c.createStatement();
                 String sql = "update ventas set fechaautorizacion='" + dccFechaAutorizacion.getText() + "',cliente=" 
-                        + hstCliente.get(cmbCliente.getSelectedIndex()) + ", conceptoventa='" + cmbConceptoVenta.getSelectedItem() + "',fechaentrega='" + dccFechaEntrega.getText() + "',fecharecibido='" + dccFechaRecibido.getText() 
+                        + hstCliente.get(cmbCliente.getSelectedIndex()) + ", fechaentrega='" + dccFechaEntrega.getText() + "',fecharecibido='" + dccFechaRecibido.getText() 
                         + "',materialrecibido='" + chkRecibido.isSelected() + "',requiereinstalacion='" + chkInstalacion.isSelected() 
                         + "',requierecanalizacion='" + chkCanalizacion.isSelected() + "',vendedor='" + cmbVendedor.getSelectedItem() + "',importe=" 
                         + txtImporte.getText() + ",importependiente=" + txtImportePendiente.getText() + ",importefacturado=" + txtImporteFacturado.getText()
@@ -846,6 +1034,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                         + txtGM.getText() + ",diascredito=" + txtDiasCredito.getText() + ",fechavencimientopago='" + dccFechaVencimiento.getText() 
                         + "',status='" + cmbStatus.getSelectedItem() + "',notas='" + txtaNotas.getText() + "' where folioventa=" + folio;
                 comando.executeUpdate(sql);
+                modificarDetalle();
                 modificarFolios();
                 modificarCotizaciones();
                 modificarOrdenes();
@@ -856,21 +1045,48 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 c.close();
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(null, "Ocurrió un error durante la modificacion");
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
     
-    public void modificarFolios(){
+    public void modificarDetalle(){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
             try {
                 comando = c.createStatement();
-                Vector<Integer> id = new Vector<Integer>();
+                String sql =    "update detalleventa set automatizacion=" + tblConceptoVenta.getValueAt(0, 1) + ", controlaccesos=" + tblConceptoVenta.getValueAt(1, 1) + 
+                                ", cctv=" + tblConceptoVenta.getValueAt(2, 1) + ", deteccionincendios=" + tblConceptoVenta.getValueAt(3, 1) + ", sistemasseguridad=" + 
+                                tblConceptoVenta.getValueAt(4, 1) + ", pacienteenfermera=" + tblConceptoVenta.getValueAt(5, 1) + ", supresionincendios=" + tblConceptoVenta.getValueAt(6, 1) + 
+                                ", viaticos=" + tblConceptoVenta.getValueAt(7, 1) + ", canalizacionescableados=" + tblConceptoVenta.getValueAt(8, 1) + ", programacionpuestaenmarcha=" + 
+                                tblConceptoVenta.getValueAt(9, 1) + ", manoobra=" + tblConceptoVenta.getValueAt(10, 1) + ", poliza=" + tblConceptoVenta.getValueAt(11, 1) + 
+                                ", refacciones=" + tblConceptoVenta.getValueAt(12, 1) + ", reparaciones=" + tblConceptoVenta.getValueAt(13, 1) + ", varios=" + 
+                                tblConceptoVenta.getValueAt(14, 1) + " where folioventa=" + folio;
+                comando.executeUpdate(sql);
+                comando.close();
+                c.close();
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(null, "Ocurrió un error durante la modificacion");
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    
+    public void modificarFolios(){
+        Connection c = ConectarDB();
+        Statement comando;
+        if( c == null ){
+            JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
+        }
+        else{
+            try {
+                comando = c.createStatement();
+                Vector<Integer> id = new Vector<>();
+                String ruta;
                 String sql = "select idfolio from foliosservicio where folioventa=" + folio;
                 ResultSet consulta = comando.executeQuery(sql);
                 while(consulta.next()){
@@ -879,21 +1095,35 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 int i;
                 if(id.size() >= dlmFolio.size()){
                     for(i = 0; i < id.size(); i++){
-                        sql = "delete from foliosservicio where idfolio=" + id.elementAt(i);
+                        sql = "delete from foliosservicio where idfolio=" + id.get(i);
                         comando.executeUpdate(sql);
                     }
                     for(i = 0; i < dlmFolio.size(); i++){
-                        sql = "insert into foliosservicio values(" + id.elementAt(i) + ",'" + dlmFolio.elementAt(i) + "'," + folio + ")";
+                        ruta = hstFolio.get(dlmFolio.get(i).toString());
+                        if(ruta.equals(NOHAYRUTA)){
+                            ruta = "null";
+                        }
+                        else{
+                            ruta = "'" + ruta + "'";
+                        }
+                        sql = "insert into foliosservicio values(" + id.get(i) + ",'" + dlmFolio.get(i) + "'," + folio + "," + ruta + ")";
                         comando.executeUpdate(sql);
                     }
                 }
                 else{
                     for(i = 0; i < id.size(); i++){
-                        sql = "delete from foliosservicio where idfolio=" + id.elementAt(i);
+                        sql = "delete from foliosservicio where idfolio=" + id.get(i);
                         comando.executeUpdate(sql);
                     }
                     for(i = 0; i < id.size(); i++){
-                        sql = "insert into foliosservicio values(" + id.elementAt(i) + ",'" + dlmFolio.elementAt(i) + "'," + folio + ")";
+                        ruta = hstFolio.get(dlmFolio.get(i).toString());
+                        if(ruta.equals(NOHAYRUTA)){
+                            ruta = "null";
+                        }
+                        else{
+                            ruta = "'" + ruta + "'";
+                        }
+                        sql = "insert into foliosservicio values(" + id.get(i) + ",'" + dlmFolio.get(i) + "'," + folio + "," + ruta + ")";
                         comando.executeUpdate(sql);
                     }
                     sql = "select max(idfolio) from foliosservicio";
@@ -903,7 +1133,14 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                         newId = consulta.getInt("max") + 1;
                     }
                     for(; i < dlmFolio.size(); i++, newId++){
-                        sql = "insert into foliosservicio values(" + newId + ",'" + dlmFolio.elementAt(i) + "'," + folio + ")";
+                        ruta = hstFolio.get(dlmFolio.get(i).toString());
+                        if(ruta.equals(NOHAYRUTA)){
+                            ruta = "null";
+                        }
+                        else{
+                            ruta = "'" + ruta + "'";
+                        }
+                        sql = "insert into foliosservicio values(" + newId + ",'" + dlmFolio.get(i) + "'," + folio + "," + ruta + ")";
                         comando.executeUpdate(sql);
                     }
                 }
@@ -911,23 +1148,23 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 c.close();
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(null, "Ocurrió un error durante la modificación");
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
     
     public void modificarCotizaciones(){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
             try {
                 comando = c.createStatement();
-                int i = 0;
-                String ruta = "";
-                Vector<Integer> id = new Vector<Integer>();
+                int i;
+                String ruta;
+                Vector<Integer> id = new Vector<>();
                 String sql = "select idcotizacion from cotizaciones where folioventa=" + folio;
                 ResultSet consulta = comando.executeQuery(sql);
                 while(consulta.next()){
@@ -935,35 +1172,35 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 }
                 if(id.size() >= dlmCotizacion.size()){
                     for(i = 0; i < id.size(); i++){
-                        sql = "delete from cotizaciones where idcotizacion=" + id.elementAt(i);
+                        sql = "delete from cotizaciones where idcotizacion=" + id.get(i);
                         comando.executeUpdate(sql);
                     }
                     for(i = 0; i < dlmCotizacion.size(); i++){
-                        ruta = hstArchivoCotizacion.get(dlmCotizacion.elementAt(i));
-                        if(ruta.equals(noHayRuta)){
+                        ruta = hstCotizacion.get(dlmCotizacion.get(i).toString());
+                        if(ruta.equals(NOHAYRUTA)){
                             ruta = "null";
                         }
                         else{
                             ruta = "'" + ruta + "'";
                         }
-                        sql = "insert into cotizaciones values(" + id.elementAt(i) + ",'" + dlmCotizacion.elementAt(i) + "'," + folio + "," + ruta + ")";
+                        sql = "insert into cotizaciones values(" + id.get(i) + ",'" + dlmCotizacion.get(i) + "'," + folio + "," + ruta + ")";
                         comando.executeUpdate(sql);
                     }
                 }
                 else{
                     for(i = 0; i < id.size(); i++){
-                        sql = "delete from cotizaciones where idcotizacion=" + id.elementAt(i);
+                        sql = "delete from cotizaciones where idcotizacion=" + id.get(i);
                         comando.executeUpdate(sql);
                     }
                     for(i = 0; i < id.size(); i++){
-                        ruta = hstArchivoCotizacion.get(dlmCotizacion.elementAt(i));
-                        if(ruta.equals(noHayRuta)){
+                        ruta = hstCotizacion.get(dlmCotizacion.get(i).toString());
+                        if(ruta.equals(NOHAYRUTA)){
                             ruta = "null";
                         }
                         else{
                             ruta = "'" + ruta + "'";
                         }
-                        sql = "insert into cotizaciones values(" + id.elementAt(i) + ",'" + dlmCotizacion.elementAt(i) + "'," + folio + "," + ruta + ")";
+                        sql = "insert into cotizaciones values(" + id.get(i) + ",'" + dlmCotizacion.get(i) + "'," + folio + "," + ruta + ")";
                         comando.executeUpdate(sql);
                     }
                     sql = "select max(idcotizacion) from cotizaciones";
@@ -973,14 +1210,14 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                         newId = consulta.getInt("max") + 1;
                     }
                     for(; i < dlmCotizacion.size(); i++, newId++){
-                        ruta = hstArchivoCotizacion.get(dlmCotizacion.elementAt(i));
-                        if(ruta.equals(noHayRuta)){
+                        ruta = hstCotizacion.get(dlmCotizacion.get(i).toString());
+                        if(ruta.equals(NOHAYRUTA)){
                             ruta = "null";
                         }
                         else{
                             ruta = "'" + ruta + "'";
                         }
-                        sql = "insert into cotizaciones values(" + newId + ",'" + dlmCotizacion.elementAt(i) + "'," + folio + "," + ruta + ")";
+                        sql = "insert into cotizaciones values(" + newId + ",'" + dlmCotizacion.get(i) + "'," + folio + "," + ruta + ")";
                         comando.executeUpdate(sql);
                     }
                 }
@@ -988,23 +1225,23 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 c.close();
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(null, "Ocurrió un error durante el registro");
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
     
     public void modificarOrdenes(){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
             try {
                 comando = c.createStatement();
-                int i = 0;
-                Vector<Integer> id = new Vector<Integer>();
-                String ruta = "";
+                int i;
+                Vector<Integer> id = new Vector<>();
+                String ruta;
                 String sql = "select idorden from ordenescompra where folioventa=" + folio;
                 ResultSet consulta = comando.executeQuery(sql);
                 while(consulta.next()){
@@ -1012,37 +1249,35 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 }
                 if(id.size() >= dlmOrdenCompra.size()){
                     for(i = 0; i < id.size(); i++){
-                        sql = "delete from ordenescompra where idorden=" + id.elementAt(i);
+                        sql = "delete from ordenescompra where idorden=" + id.get(i);
                         comando.executeUpdate(sql);
                     }
-                    ruta = "";
                     for(i = 0; i < dlmOrdenCompra.size(); i++){
-                        ruta = hstArchivoOrdenCompra.get(dlmOrdenCompra.elementAt(i));
-                        if(ruta.equals(noHayRuta)){
+                        ruta = hstOrdenCompra.get(dlmOrdenCompra.get(i).toString());
+                        if(ruta.equals(NOHAYRUTA)){
                             ruta = "null";
                         }
                         else{
                             ruta = "'" + ruta + "'";
                         }
-                        sql = "insert into ordenescompra values(" + id.elementAt(i) + ",'" + dlmOrdenCompra.elementAt(i) + "'," + folio + "," + ruta + ")";
+                        sql = "insert into ordenescompra values(" + id.get(i) + ",'" + dlmOrdenCompra.get(i) + "'," + folio + "," + ruta + ")";
                         comando.executeUpdate(sql);
                     }
                 }
                 else{
                     for(i = 0; i < id.size(); i++){
-                        sql = "delete from ordenescompra where idorden=" + id.elementAt(i);
+                        sql = "delete from ordenescompra where idorden=" + id.get(i);
                         comando.executeUpdate(sql);
                     }
-                    ruta = "";
                     for(i = 0; i < id.size(); i++){
-                        ruta = hstArchivoOrdenCompra.get(dlmOrdenCompra.elementAt(i));
-                        if(ruta.equals(noHayRuta)){
+                        ruta = hstOrdenCompra.get(dlmOrdenCompra.get(i).toString());
+                        if(ruta.equals(NOHAYRUTA)){
                             ruta = "null";
                         }
                         else{
                             ruta = "'" + ruta + "'";
                         }
-                        sql = "insert into ordenescompra values(" + id.elementAt(i) + ",'" + dlmOrdenCompra.elementAt(i) + "'," + folio + "," + ruta + ")";
+                        sql = "insert into ordenescompra values(" + id.get(i) + ",'" + dlmOrdenCompra.get(i) + "'," + folio + "," + ruta + ")";
                         comando.executeUpdate(sql);
                     }
                     sql = "select max(idorden) from ordenescompra";
@@ -1052,14 +1287,14 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                         newId = consulta.getInt("max") + 1;
                     }
                     for(; i < dlmOrdenCompra.size(); i++, newId++){
-                        ruta = hstArchivoOrdenCompra.get(dlmOrdenCompra.elementAt(i));
-                        if(ruta.equals(noHayRuta)){
+                        ruta = hstOrdenCompra.get(dlmOrdenCompra.get(i).toString());
+                        if(ruta.equals(NOHAYRUTA)){
                             ruta = "null";
                         }
                         else{
                             ruta = "'" + ruta + "'";
                         }
-                        sql = "insert into ordenescompra values(" + newId + ",'" + dlmOrdenCompra.elementAt(i) + "'," + folio + "," + ruta + ")";
+                        sql = "insert into ordenescompra values(" + newId + ",'" + dlmOrdenCompra.get(i) + "'," + folio + "," + ruta + ")";
                         comando.executeUpdate(sql);
                     }
                 }
@@ -1067,23 +1302,23 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 c.close();
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(null, "Ocurrió un error durante el registro");
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
     
     public void modificarOrdenesGINSATEC(){
         Connection c = ConectarDB();
-        Statement comando = null, update = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
             try {
                 comando = c.createStatement();
-                int i = 0;
-                Vector<Integer> id = new Vector<Integer>();
-                String fecha = "";
+                int i;
+                Vector<Integer> id = new Vector<>();
+                String[] aux;
                 String sql = "select idorden from ordenescompraginsatec where folioventa=" + folio;
                 ResultSet consulta = comando.executeQuery(sql);
                 while(consulta.next()){
@@ -1091,25 +1326,35 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 }
                 if(id.size() >= dlmOrdenGINSATEC.size()){
                     for(i = 0; i < id.size(); i++){
-                        sql = "delete from ordenescompraginsatec where idorden=" + id.elementAt(i);
+                        sql = "delete from ordenescompraginsatec where idorden=" + id.get(i);
                         comando.executeUpdate(sql);
                     }
-                    fecha = "";
                     for(i = 0; i < dlmOrdenGINSATEC.size(); i++){
-                        fecha = hstFechaOrdenGINSATEC.get(dlmOrdenGINSATEC.elementAt(i));
-                        sql = "insert into ordenescompraginsatec values(" + id.elementAt(i) + ",'" + dlmOrdenGINSATEC.elementAt(i) + "'," + folio + ",'" + fecha + "')";
+                        aux = hstOrdenGINSATEC.get(dlmOrdenGINSATEC.get(i).toString());
+                        if(aux[1].equals(NOHAYRUTA)){
+                            aux[1] = "null";
+                        }
+                        else{
+                            aux[1] = "'" + aux[1] + "'";
+                        }
+                        sql = "insert into ordenescompraginsatec values(" + id.get(i) + ",'" + dlmOrdenGINSATEC.get(i) + "'," + folio + ",'" + aux[0] + "'," + aux[1] + ")";
                         comando.executeUpdate(sql);
                     }
                 }
                 else{
                     for(i = 0; i < id.size(); i++){
-                        sql = "delete from ordenescompraginsatec where idorden=" + id.elementAt(i);
+                        sql = "delete from ordenescompraginsatec where idorden=" + id.get(i);
                         comando.executeUpdate(sql);
                     }
-                    fecha = "";
                     for(i = 0; i < id.size(); i++){
-                        fecha = hstFechaOrdenGINSATEC.get(dlmOrdenGINSATEC.elementAt(i));
-                        sql = "insert into ordenescompraginsatec values(" + id.elementAt(i) + ",'" + dlmOrdenGINSATEC.elementAt(i) + "'," + folio + ",'" + fecha + "')";
+                        aux = hstOrdenGINSATEC.get(dlmOrdenGINSATEC.get(i).toString());
+                        if(aux[1].equals(NOHAYRUTA)){
+                            aux[1] = "null";
+                        }
+                        else{
+                            aux[1] = "'" + aux[1] + "'";
+                        }
+                        sql = "insert into ordenescompraginsatec values(" + id.get(i) + ",'" + dlmOrdenGINSATEC.get(i) + "'," + folio + ",'" + aux[0] + "'," + aux[1] + ")";
                         comando.executeUpdate(sql);
                     }
                     sql = "select max(idorden) from ordenescompraginsatec";
@@ -1119,8 +1364,14 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                         newId = consulta.getInt("max") + 1;
                     }
                     for(; i < dlmOrdenGINSATEC.size(); i++, newId++){
-                        fecha = hstFechaOrdenGINSATEC.get(dlmOrdenGINSATEC.elementAt(i));
-                        sql = "insert into ordenescompraginsatec values(" + newId + ",'" + dlmOrdenGINSATEC.elementAt(i) + "'," + folio + ",'" + fecha + "')";
+                        aux = hstOrdenGINSATEC.get(dlmOrdenGINSATEC.get(i).toString());
+                        if(aux[1].equals(NOHAYRUTA)){
+                            aux[1] = "null";
+                        }
+                        else{
+                            aux[1] = "'" + aux[1] + "'";
+                        }
+                        sql = "insert into ordenescompraginsatec values(" + newId + ",'" + dlmOrdenGINSATEC.get(i) + "'," + folio + ",'" + aux[0] + "'," + aux[1] + ")";
                         comando.executeUpdate(sql);
                     }
                 }
@@ -1128,23 +1379,23 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 c.close();
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(null, "Ocurrió un error durante el registro");
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
     
     public void modificarFacturas(){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
         else{
             try {
                 comando = c.createStatement();
-                int i = 0;
-                Vector<Integer> id = new Vector<Integer>();
-                String fecha = "";
+                int i;
+                Vector<Integer> id = new Vector<>();
+                String[] aux;
                 String sql = "select idfactura from facturas where folioventa=" + folio;
                 ResultSet consulta = comando.executeQuery(sql);
                 while(consulta.next()){
@@ -1152,23 +1403,35 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 }
                 if(id.size() >= dlmFactura.size()){
                     for(i = 0; i < id.size(); i++){
-                        sql = "delete from facturas where idfactura=" + id.elementAt(i);
+                        sql = "delete from facturas where idfactura=" + id.get(i);
                         comando.executeUpdate(sql);
                     }
                     for(i = 0; i < dlmFactura.size(); i++){
-                        fecha = hstFechaFactura.get(dlmFactura.elementAt(i));
-                        sql = "insert into facturas values(" + id.elementAt(i) + ",'" + dlmFactura.elementAt(i) + "'," + folio + ",'" + fecha + "')";
+                        aux = hstFactura.get(dlmFactura.get(i).toString());
+                        if(aux[1].equals(NOHAYRUTA)){
+                            aux[1] = "null";
+                        }
+                        else{
+                            aux[1] = "'" + aux[1] + "'";
+                        }
+                        sql = "insert into facturas values(" + id.get(i) + ",'" + dlmFactura.get(i) + "'," + folio + ",'" + aux[0] + "'," + aux[1] + ")";
                         comando.executeUpdate(sql);
                     }
                 }
                 else{
                     for(i = 0; i < id.size(); i++){
-                        sql = "delete from facturas where idfactura=" + id.elementAt(i);
+                        sql = "delete from facturas where idfactura=" + id.get(i);
                         comando.executeUpdate(sql);
                     }
                     for(i = 0; i < id.size(); i++){
-                        fecha = hstFechaFactura.get(dlmFactura.elementAt(i));
-                        sql = "insert into facturas values(" + id.elementAt(i) + ",'" + dlmFactura.elementAt(i) + "'," + folio + ",'" + fecha + "')";
+                        aux = hstFactura.get(dlmFactura.get(i).toString());
+                        if(aux[1].equals(NOHAYRUTA)){
+                            aux[1] = "null";
+                        }
+                        else{
+                            aux[1] = "'" + aux[1] + "'";
+                        }
+                        sql = "insert into facturas values(" + id.get(i) + ",'" + dlmFactura.get(i) + "'," + folio + ",'" + aux[0] + "'," + aux[1] + ")";
                         comando.executeUpdate(sql);
                     }
                     sql = "select max(idfactura) from facturas";
@@ -1178,8 +1441,14 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                         newId = consulta.getInt("max") + 1;
                     }
                     for(; i < dlmFactura.size(); i++, newId++){
-                        fecha = hstFechaFactura.get(dlmFactura.elementAt(i));
-                        sql = "insert into facturas values(" + newId + ",'" + dlmFactura.elementAt(i) + "'," + folio + ",'" + fecha + "')";
+                        aux = hstFactura.get(dlmFactura.get(i).toString());
+                        if(aux[1].equals(NOHAYRUTA)){
+                            aux[1] = "null";
+                        }
+                        else{
+                            aux[1] = "'" + aux[1] + "'";
+                        }
+                        sql = "insert into facturas values(" + newId + ",'" + dlmFactura.get(i) + "'," + folio + ",'" + aux[0] + "'," + aux[1] + ")";
                         comando.executeUpdate(sql);
                     }
                 }
@@ -1187,7 +1456,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 c.close();
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(null, "Ocurrió un error durante el registro");
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
@@ -1199,8 +1468,8 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     Float.parseFloat(f.getText());
                     return true;
                 }
-                catch(Exception ex){
-                    Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                catch(NumberFormatException ex){
+                    Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
                     return false;
                 }
             }
@@ -1219,20 +1488,21 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 Float.parseFloat(f.getText());
                 return true;
             }
-            catch(Exception ex){
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+            catch(NumberFormatException ex){
+                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
                 return false;
             }
         }
     }
     
     public void inicializarFila(){
+        String[] aux;
         try{
             f.FolioVenta = folio;
             f.FechaAutorizacion = dccFechaAutorizacion.getSelectedDate().getTime();
             f.NombreComercial = opcionesNombreComercial.get(cmbCliente.getSelectedIndex());
             f.RazonSocial = opcionesRazonSocial.get(cmbCliente.getSelectedIndex());
-            f.ConceptoVenta = String.valueOf(cmbConceptoVenta.getSelectedItem());
+            f.ConceptoVenta = "Detalle";
             f.FechaEntrega = dccFechaEntrega.getSelectedDate().getTime();
             f.FechaRecibido = dccFechaRecibido.getSelectedDate().getTime();
             if(chkRecibido.isSelected()){
@@ -1268,13 +1538,15 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
             f.FechaFactura = "";
             f.Factura = "";
             for(int i = 0; i < dlmFactura.size(); i++){
-                f.FechaFactura += hstFechaFactura.get(dlmFactura.get(i)) + "-";
+                aux = hstFactura.get(dlmFactura.get(i).toString());
+                f.FechaFactura += aux[0] + "-";
                 f.Factura += dlmFactura.get(i) + "-";
             }
             f.OrdenCompraGINSATEC = "";
             f.FechaOrdenCompraGINSATEC = "";
             for(int i = 0; i < dlmOrdenGINSATEC.size(); i++){
-                f.FechaOrdenCompraGINSATEC += hstFechaOrdenGINSATEC.get(dlmOrdenGINSATEC.get(i)) + "-";
+                aux = hstOrdenGINSATEC.get(dlmOrdenGINSATEC.get(i).toString());
+                f.FechaOrdenCompraGINSATEC += aux[0] + "-";
                 f.OrdenCompraGINSATEC += dlmOrdenGINSATEC.get(i) + "-";
             }
             f.FolioServicio = "";
@@ -1290,8 +1562,8 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 f.OrdenCompra += dlmOrdenCompra.get(i) + "-";
             }
         }
-        catch(Exception ex){
-            Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+        catch(NumberFormatException ex){
+            Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
@@ -1322,59 +1594,85 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     JOptionPane.showMessageDialog(null, "Asegurate de llenar adecuadamente los campos númericos");
                 }
                 else{
-                    if(nuevo){
-                        nuevoRegistro();
+                    int sum = 0;
+                    boolean valido = true;
+                    ArrayList<Float> conceptos = new ArrayList<>();
+                    conceptos.add(Float.valueOf(String.valueOf(txtImporte.getText())));
+                    for(int i = 0; i < opcionesConceptoVenta.length; i++){
+                        if(Float.valueOf(String.valueOf(tblConceptoVenta.getValueAt(i, 1))) < 0) valido = false;
+                        sum += Float.valueOf(String.valueOf(tblConceptoVenta.getValueAt(i, 1)));
+                        conceptos.add(Float.valueOf(String.valueOf(tblConceptoVenta.getValueAt(i, 1))));
+                    }
+                    if(!valido){
+                        JOptionPane.showMessageDialog(this, "No se permiten números negativos para el detalle de la venta", "Error", JOptionPane.WARNING_MESSAGE);
+                    }
+                    else if(sum < 100){
+                        JOptionPane.showMessageDialog(this, "El total de los conceptos de venta es menor al 100%");
+                    }
+                    else if(sum > 100){
+                        JOptionPane.showMessageDialog(this, "El total de los conceptos de venta es mayor al 100%");
                     }
                     else{
-                        modificarRegistro();    
-                    }
-                    ventas.actualizarFiltro();
-                    inicializarFila();
-                    if(ventas.modeloRegistrar == null){
-                        ventas.modeloRegistrar = new SortTable(ventas.columnasRegistrar, new ArrayList<Filas>());
-                        ventas.tblTablaRegistrar = new JTable(ventas.modeloRegistrar);
-                        ventas.modeloRegistrar.modificar(folio, f);
-                        
-                        ventas.pnlRegistrar.remove(ventas.pnlTablaRegistrar);
-                        ventas.pnlTablaRegistrar = new JScrollPane(ventas.tblTablaRegistrar);
-                        ventas.tblTablaRegistrar.setFillsViewportHeight(true);
-                        ventas.tblTablaRegistrar.setDefaultEditor(Object.class, null);
-                        ventas.tblTablaRegistrar.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-                        ventas.tcaRegistrar = new TableColumnAdjuster(ventas.tblTablaRegistrar);
-                        ventas.tcaRegistrar.adjustColumns();
-                        ventas.tblTablaRegistrar.setAutoCreateRowSorter(true);
-                        ventas.tblTablaRegistrar.getTableHeader().setReorderingAllowed(false);
-                        ventas.tblTablaRegistrar.addMouseListener(new java.awt.event.MouseAdapter() {
-                            @Override
-                            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                                ventas.abrirArchivo(ventas.tblTablaRegistrar);
+                        if(nuevo){
+                            nuevoRegistro();
+                        }
+                        else{
+                            modificarRegistro();    
+                        }
+                        ventas.actualizarFiltro();
+                        inicializarFila();
+                        ventas.hstDetalleVenta.replace(folio, conceptos);
+                        if(ventas.modeloRegistrar == null){
+                            if(ventas.admin){
+                                ventas.modeloRegistrar = new SortTable(ventas.columnasMostrar, ventas.modeloMostrar.datos);
                             }
-                        });
-                        ventas.pnlRegistrar.add(ventas.pnlTablaRegistrar, BorderLayout.CENTER);
-                        ventas.pnlRegistrar.validate();
-                        ventas.pnlRegistrar.repaint();
+                            else{
+                                ventas.modeloRegistrar = new SortTable(ventas.columnasRegistrar, new ArrayList<>());
+                            }
+                            ventas.tblTablaRegistrar = new JTable(ventas.modeloRegistrar);
+                            ventas.modeloRegistrar.modificar(folio, f);
+
+                            ventas.pnlRegistrar.remove(ventas.pnlTablaRegistrar);
+                            ventas.pnlTablaRegistrar = new JScrollPane(ventas.tblTablaRegistrar);
+                            ventas.tblTablaRegistrar.setFillsViewportHeight(true);
+                            ventas.tblTablaRegistrar.setDefaultEditor(Object.class, null);
+                            ventas.tblTablaRegistrar.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+                            ventas.tcaRegistrar = new TableColumnAdjuster(ventas.tblTablaRegistrar);
+                            ventas.tcaRegistrar.adjustColumns();
+                            ventas.tblTablaRegistrar.setAutoCreateRowSorter(true);
+                            ventas.tblTablaRegistrar.getTableHeader().setReorderingAllowed(false);
+                            ventas.tblTablaRegistrar.addMouseListener(new java.awt.event.MouseAdapter() {
+                                @Override
+                                public void mouseClicked(java.awt.event.MouseEvent evt) {
+                                    ventas.abrirArchivo(ventas.tblTablaRegistrar);
+                                }
+                            });
+                            ventas.pnlRegistrar.add(ventas.pnlTablaRegistrar, BorderLayout.CENTER);
+                            ventas.pnlRegistrar.validate();
+                            ventas.pnlRegistrar.repaint();
+                        }
+                        else{
+                            System.out.println("No es igual a null");
+                            ventas.modeloRegistrar.modificar(folio, f);
+                            ventas.tcaRegistrar.adjustColumns();
+                        }
+                        if(ventas.modeloMostrar == null){
+                            ventas.modeloMostrar = new SortTable(ventas.columnasMostrar, new ArrayList<>());
+                            ventas.tblTablaMostrar = new JTable(ventas.modeloMostrar);
+                            ventas.modeloMostrar.modificar(folio, f);
+
+                            ventas.pnlMostrar.remove(ventas.pnlTablaMostrar);
+                            ventas.crearTablas(ventas.tblTablaMostrar);
+                            ventas.pnlMostrar.add(ventas.pnlTablaMostrar, BorderLayout.CENTER);
+                            ventas.pnlMostrar.validate();
+                            ventas.pnlMostrar.repaint();
+                        }
+                        else{
+                            ventas.modeloMostrar.modificar(folio, f);
+                            ventas.tcaMostrar.adjustColumns();
+                        }
+                        this.dispose();
                     }
-                    else{
-                        ventas.modeloRegistrar.modificar(folio, f);
-                        ventas.tcaRegistrar.adjustColumns();
-                    }
-                    if(ventas.modeloMostrar == null){
-                        ventas.modeloMostrar = new SortTable(ventas.columnasMostrar, new ArrayList<Filas>());
-                        ventas.tblTablaMostrar = new JTable(ventas.modeloMostrar);
-                        ventas.modeloMostrar.modificar(folio, f);
-                        
-                        ventas.pnlMostrar.remove(ventas.pnlTablaMostrar);
-                        ventas.crearTablas(ventas.tblTablaMostrar);
-                        ventas.pnlMostrar.add(ventas.pnlTablaMostrar, BorderLayout.CENTER);
-                        ventas.pnlMostrar.validate();
-                        ventas.pnlMostrar.repaint();
-                        ventas.cmbFiltros.setEnabled(true);
-                    }
-                    else{
-                        ventas.modeloMostrar.modificar(folio, f);
-                        ventas.tcaMostrar.adjustColumns();
-                    }
-                    this.dispose();
                 }
             }
         }
@@ -1394,17 +1692,22 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
             }
         }
         else if(accion == btnNuevoCliente){
-            String nombreComercial = null; 
+            String nombreComercial = null;
             do{
                 nombreComercial = JOptionPane.showInputDialog(
                     this, 
                     "Nombre Comercial del nuevo cliente:", 
                     "Agregar Nuevo Nombre Comercial", 
                     JOptionPane.INFORMATION_MESSAGE);
-                if(nombreComercial.contains("'")){
-                JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
-                        + "Por favor evita usarlo");
-            }
+                if(nombreComercial != null){
+                    if(nombreComercial.contains("'")){
+                        JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
+                            + "Por favor evita usarlo");
+                    }
+                }
+                else{
+                    break;
+                }
             }while(nombreComercial.contains("'"));
             String razonSocial = null;
             do{
@@ -1413,9 +1716,14 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     "Razón Social del nuevo cliente:", 
                     "Agregar Nueva Razón Social", 
                     JOptionPane.INFORMATION_MESSAGE);
-            if(razonSocial.contains("'")){
-                JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
-                        + "Por favor evita usarlo");
+            if(razonSocial != null){
+                if(razonSocial.contains("'")){
+                    JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
+                            + "Por favor evita usarlo");
+                }
+            }
+            else{
+                break;
             }
             }while(razonSocial.contains("'"));
             if(nombreComercial != null && razonSocial != null){
@@ -1446,9 +1754,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                     opcionesCliente.add(nombreComercial + "-" + razonSocial);
                     nuevoCliente(nombreComercial, razonSocial);
                     modelCliente = new DefaultComboBoxModel(opcionesCliente);
-                    //modelRazonSocial = new DefaultComboBoxModel(opcionesRazonSocial);
                     cmbCliente.setModel(modelCliente);
-                    //cmbRazonSocial.setModel(modelRazonSocial);
                     ventas.filtrosCliente.add(nombreComercial);
                     ventas.actualizarFiltro();
                 }
@@ -1459,28 +1765,58 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                 JOptionPane.showMessageDialog(null, "No has seleccionado un cliente");
             }
             else{
-                String nombreComercial = null;
+                String nombreComercial = opcionesNombreComercial.get(cmbCliente.getSelectedIndex());
                 do{
                     nombreComercial = JOptionPane.showInputDialog(
+                            this, 
+                            "Nuevo Nombre Comercial del cliente:", 
+                            "Agregar Nuevo Nombre Comercial", 
+                            JOptionPane.INFORMATION_MESSAGE, 
+                            null, 
+                            null, 
+                            opcionesNombreComercial.get(cmbCliente.getSelectedIndex())).toString();
+                    
+                    /*nombreComercial = JOptionPane.showInputDialog(
                     this, 
                     "Nuevo Nombre Comercial del cliente:", 
                     "Agregar Nuevo Nombre Comercial", 
-                    JOptionPane.INFORMATION_MESSAGE);
-                    if(nombreComercial.contains("'")){
-                        JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
-                                + "Por favor evita usarlo");
+                    JOptionPane.INFORMATION_MESSAGE);*/
+                    
+                    if(nombreComercial != null){
+                        if(nombreComercial.contains("'")){
+                            JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
+                                    + "Por favor evita usarlo");
+                        }
+                    }
+                    else{
+                        break;
                     }
                 }while(nombreComercial.contains("'"));
                 String razonSocial = null;
                 do{
                     razonSocial = JOptionPane.showInputDialog(
+                            this, 
+                            "Nueva Razón Social del cliente:", 
+                            "Agregar Nueva Razón Social", 
+                            JOptionPane.INFORMATION_MESSAGE, 
+                            null, 
+                            null, 
+                            opcionesRazonSocial.get(cmbCliente.getSelectedIndex())).toString();
+                    
+                    /*razonSocial = JOptionPane.showInputDialog(
                         this, 
                         "Nueva Razón Social del cliente:", 
                         "Agregar Nueva Razón Social", 
-                        JOptionPane.INFORMATION_MESSAGE);
-                    if(razonSocial.contains("'")){
-                        JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
-                                + "Por favor evita usarlo");
+                        JOptionPane.INFORMATION_MESSAGE);*/
+                    
+                    if(razonSocial != null){
+                        if(razonSocial.contains("'")){
+                            JOptionPane.showMessageDialog(null, "El caracter ' puede afectar el funcionamiento de la base de datos.\n"
+                                    + "Por favor evita usarlo");
+                        }
+                    }
+                    else{
+                        break;
                     }
                 }while(razonSocial.contains("'"));
                 if(nombreComercial != null && razonSocial != null){
@@ -1507,19 +1843,17 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
                             nombreComercial = "NC";
                         }
                         modificarCliente(nombreComercial, razonSocial);
-                        ventas.filtrosCliente.remove(cmbCliente.getSelectedItem());
+                        ventas.filtrosCliente.remove(cmbCliente.getSelectedItem().toString());
                         ventas.filtrosCliente.add(nombreComercial);
                         ventas.actualizarFiltro();
                         opcionesNombreComercial.remove(cmbCliente.getSelectedIndex());
                         opcionesNombreComercial.add(nombreComercial);
                         opcionesRazonSocial.remove(cmbCliente.getSelectedIndex());
                         opcionesRazonSocial.add(razonSocial);
-                        opcionesCliente.remove(cmbCliente.getSelectedItem());
+                        opcionesCliente.remove(cmbCliente.getSelectedItem().toString());
                         opcionesCliente.add(nombreComercial + "-" + razonSocial);
                         modelCliente = new DefaultComboBoxModel(opcionesCliente);
                         cmbCliente.setModel(modelCliente);
-                        //modelRazonSocial = new DefaultComboBoxModel(opcionesRazonSocial);
-                        //cmbRazonSocial.setModel(modelRazonSocial);
                     }
                 }
             }
@@ -1528,85 +1862,152 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
             JFileChooser dialogoArchivo = new JFileChooser();
             dialogoArchivo.setVisible(true);
             if(dialogoArchivo.showOpenDialog(this) == JFileChooser.APPROVE_OPTION){
-                txtArchivoOrdenCompra.setText(dialogoArchivo.getSelectedFile().getAbsolutePath());
+                try {
+                    txtArchivoOrdenCompra.setText(dialogoArchivo.getSelectedFile().getCanonicalPath());
+                } catch (IOException ex) {
+                    Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
             else{
-                txtArchivoOrdenCompra.setText(noHayRuta);
+                txtArchivoOrdenCompra.setText(NOHAYRUTA);
             }
         }
         else if(accion == btnAgregarOrdenCompra){
-            if(!txtOrdenCompra.getText().isEmpty()){
-                hstArchivoOrdenCompra.put(txtOrdenCompra.getText(), txtArchivoOrdenCompra.getText());
+            int option = JOptionPane.YES_OPTION;
+            String[] ordenes;
+            for(Filas fila : ventas.modeloMostrar.datos){
+                ordenes = fila.OrdenCompra.split(",");
+                for(String orden : ordenes){
+                    if(orden.equals(txtOrdenCompra.getText()) && (!orden.equals("NA") && !orden.equals("N/A") && !orden.equals(""))){
+                        option = JOptionPane.showConfirmDialog(this, "La orden que deseas agregar ya fue agregada en otro registro.\nDeseas continuar?", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                        break;
+                    }
+                }
+            }
+            if(!txtOrdenCompra.getText().isEmpty() && option == JOptionPane.YES_OPTION){
+                hstOrdenCompra.put(txtOrdenCompra.getText(), txtArchivoOrdenCompra.getText());
                 dlmOrdenCompra.addElement(txtOrdenCompra.getText());
                 txtOrdenCompra.setText("");
-                txtArchivoOrdenCompra.setText(noHayRuta);
+                txtArchivoOrdenCompra.setText(NOHAYRUTA);
             }
         }
         else if(accion == btnEliminarOrdenCompra){
             if(!lstOrdenCompra.isSelectionEmpty()){
-                hstArchivoOrdenCompra.remove(dlmOrdenCompra.get(lstOrdenCompra.getSelectedIndex()));
-                dlmOrdenCompra.remove(lstOrdenCompra.getSelectedIndex());
+                hstOrdenCompra.remove(dlmOrdenCompra.remove(lstOrdenCompra.getSelectedIndex()).toString());
+            }
+        }
+        else if(accion == btnArchivoOrdenGINSATEC){
+            JFileChooser dialogoArchivo = new JFileChooser();
+            dialogoArchivo.setVisible(true);
+            if(dialogoArchivo.showOpenDialog(this) == JFileChooser.APPROVE_OPTION){
+                try {
+                    txtArchivoOrdenGINSATEC.setText(dialogoArchivo.getSelectedFile().getCanonicalPath());
+                } catch (IOException ex) {
+                    Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            else{
+                txtArchivoOrdenGINSATEC.setText(NOHAYRUTA);
             }
         }
         else if(accion == btnAgregarOrdenGINSATEC){
+            String[] aux = new String[2];
             if(!txtOrdenGINSATEC.getText().isEmpty()){
-                hstFechaOrdenGINSATEC.put(txtOrdenGINSATEC.getText(), dccFechaOrdenGINSATEC.getText());
+                aux[0] = dccFechaOrdenGINSATEC.getText();
+                aux[1] = txtArchivoOrdenGINSATEC.getText();
+                hstOrdenGINSATEC.put(txtOrdenGINSATEC.getText(), aux);
                 dlmOrdenGINSATEC.addElement(txtOrdenGINSATEC.getText());
                 txtOrdenGINSATEC.setText("");
+                txtArchivoOrdenGINSATEC.setText(NOHAYRUTA);
             }
         }
         else if(accion == btnEliminarOrdenGINSATEC){
             if(!lstOrdenGINSATEC.isSelectionEmpty()){
-                hstFechaOrdenGINSATEC.remove(dlmOrdenGINSATEC.get(lstOrdenGINSATEC.getSelectedIndex()));
-                dlmOrdenGINSATEC.remove(lstOrdenGINSATEC.getSelectedIndex());
+                hstOrdenGINSATEC.remove(dlmOrdenGINSATEC.remove(lstOrdenGINSATEC.getSelectedIndex()).toString());
+            }
+        }
+        else if(accion == btnArchivoFactura){
+            JFileChooser dialogoArchivo = new JFileChooser();
+            dialogoArchivo.setVisible(true);
+            if(dialogoArchivo.showOpenDialog(this) == JFileChooser.APPROVE_OPTION){
+                try {
+                    txtArchivoFactura.setText(dialogoArchivo.getSelectedFile().getCanonicalPath());
+                } catch (IOException ex) {
+                    Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            else{
+                txtArchivoFactura.setText(NOHAYRUTA);
             }
         }
         else if(accion == btnAgregarFactura){
+            String[] aux = new String[2];
             if(!txtFactura.getText().isEmpty()){
-                hstFechaFactura.put(txtFactura.getText(), dccFechaFactura.getText());
+                aux[0] = dccFechaFactura.getText();
+                aux[1] = txtArchivoFactura.getText();
+                hstFactura.put(txtFactura.getText(), aux);
                 dlmFactura.addElement(txtFactura.getText());
                 txtFactura.setText("");
+                txtArchivoFactura.setText(NOHAYRUTA);
             }
         }
         else if(accion == btnEliminarFactura){
             if(!lstFactura.isSelectionEmpty()){
-                hstFechaFactura.remove(dlmFactura.get(lstFactura.getSelectedIndex()));
-                dlmFactura.remove(lstFactura.getSelectedIndex());
+                hstFactura.remove(dlmFactura.remove(lstFactura.getSelectedIndex()).toString());
+            }
+        }
+        else if(accion == btnArchivoFolio){
+            JFileChooser dialogoArchivo = new JFileChooser();
+            dialogoArchivo.setVisible(true);
+            if(dialogoArchivo.showOpenDialog(this) == JFileChooser.APPROVE_OPTION){
+                try {
+                    txtArchivoFolio.setText(dialogoArchivo.getSelectedFile().getCanonicalPath());
+                } catch (IOException ex) {
+                    Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            else{
+                txtArchivoFolio.setText(NOHAYRUTA);
             }
         }
         else if(accion == btnAgregarFolio){
             if(!txtFolio.getText().isEmpty()){
+                hstFolio.put(txtFolio.getText(), txtArchivoFolio.getText());
                 dlmFolio.addElement(txtFolio.getText());
                 txtFolio.setText("");
+                txtArchivoFolio.setText(NOHAYRUTA);
             }
         }
         else if(accion == btnEliminarFolio){
             if(!lstFolio.isSelectionEmpty()){
-                dlmFolio.remove(lstFolio.getSelectedIndex());
+                hstFolio.remove(dlmFolio.remove(lstFolio.getSelectedIndex()).toString());
             }
         }
         else if(accion == btnArchivoCotizacion){
             JFileChooser dialogoArchivo = new JFileChooser();
             dialogoArchivo.setVisible(true);
             if(dialogoArchivo.showOpenDialog(this) == JFileChooser.APPROVE_OPTION){
-                txtArchivoCotizacion.setText(dialogoArchivo.getSelectedFile().getAbsolutePath());
+                try {
+                    txtArchivoCotizacion.setText(dialogoArchivo.getSelectedFile().getCanonicalPath());
+                } catch (IOException ex) {
+                    Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
             else{
-                txtArchivoCotizacion.setText(noHayRuta);
+                txtArchivoCotizacion.setText(NOHAYRUTA);
             }
         }
         else if(accion == btnAgregarCotizacion){
             if(!txtCotizacion.getText().isEmpty()){
-                hstArchivoCotizacion.put(txtCotizacion.getText(), txtArchivoCotizacion.getText());
+                hstCotizacion.put(txtCotizacion.getText(), txtArchivoCotizacion.getText());
                 dlmCotizacion.addElement(txtCotizacion.getText());
                 txtCotizacion.setText("");
-                txtArchivoCotizacion.setText(noHayRuta);
+                txtArchivoCotizacion.setText(NOHAYRUTA);
             }
         }
         else if(accion == btnEliminarCotizacion){
             if(!lstCotizacion.isSelectionEmpty()){
-                hstArchivoCotizacion.remove(dlmCotizacion.get(lstCotizacion.getSelectedIndex()));
-                dlmCotizacion.remove(lstCotizacion.getSelectedIndex());
+                hstCotizacion.remove(dlmCotizacion.remove(lstCotizacion.getSelectedIndex()).toString());
             }
         }
     }
@@ -1614,11 +2015,7 @@ public class Capturar extends JFrame implements ActionListener, Runnable{
     @Override
     public void run() {
         while(true){
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            /*Nothing*/
         }
     }
 

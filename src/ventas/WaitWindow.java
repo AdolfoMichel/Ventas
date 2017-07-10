@@ -4,16 +4,10 @@
  */
 package ventas;
 
-import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.image.*;
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.logging.*;
-import javax.imageio.ImageIO;
 import javax.swing.*;
 
 public class WaitWindow extends JFrame implements Runnable{
@@ -43,6 +37,7 @@ public class WaitWindow extends JFrame implements Runnable{
         }
 
         this.addWindowListener(new WindowAdapter(){
+            @Override
             public void windowClosing(WindowEvent e)
             {
                 new Servidor().cerrarServidor();
@@ -63,15 +58,12 @@ public class WaitWindow extends JFrame implements Runnable{
     
     public void iniciar(){
         Thread t = new Thread(){
+            Ventas v;
             @Override
             public void run(){
-                new Ventas(user, rol, w);
+                v = new Ventas(user, rol, w);
                 while(true){
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(WaitWindow.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                    /*Nothing*/
                 }
             }
         };
@@ -82,11 +74,7 @@ public class WaitWindow extends JFrame implements Runnable{
     public void run() {    
         iniciar();
         while(running){
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(WaitWindow.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            /*Nothing*/
         }
     }
     

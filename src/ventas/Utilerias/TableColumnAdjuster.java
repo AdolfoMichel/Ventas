@@ -1,7 +1,7 @@
 /*
  * No de mi autoria
  */
-package ventas;
+package ventas.Utilerias;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -136,7 +136,6 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
 	private int getCellDataWidth(int row, int column)
 	{
 		//  Inovke the renderer for the cell to calculate the preferred width
-
 		TableCellRenderer cellRenderer = table.getCellRenderer(row, column);
 		Component c = table.prepareRenderer(cellRenderer, row, column);
 		int width = c.getPreferredSize().width + table.getIntercellSpacing().width;

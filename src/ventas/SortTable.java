@@ -4,15 +4,18 @@
  */
 package ventas;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 import java.util.Date;
+import java.util.Hashtable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.table.TableModel;
 
 public class SortTable extends AbstractTableModel{
     
@@ -69,7 +72,7 @@ public class SortTable extends AbstractTableModel{
     public String getColumnName(int columnIndex) {
         return columnas[columnIndex];
     }
-     
+    
     @Override
     public Class<?> getColumnClass(int columnIndex) {
         if (datos == null) {
@@ -85,6 +88,12 @@ public class SortTable extends AbstractTableModel{
         if(datos.isEmpty()) return null;
         Filas fila = datos.get(rowIndex);
         Object returnValue = null;
+        DecimalFormat df = new DecimalFormat("####.0");
+        DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
+        symbols.setGroupingSeparator(',');
+        symbols.setDecimalSeparator('.');
+        df.setDecimalFormatSymbols(symbols);
+        
         switch (columnIndex) {
         case COLUMN_ID:
             returnValue = fila.FolioVenta;
@@ -141,22 +150,27 @@ public class SortTable extends AbstractTableModel{
             returnValue = fila.Vendedor;
             break;
         case COLUMN_IMPORTE:
-            returnValue = fila.Importe;
+            returnValue = Float.valueOf(df.format(fila.Importe));
+            //returnValue = fila.Importe;
             break;
         case COLUMN_IMPORTEPENDIENTE:
-            returnValue = fila.ImportePendiente;
+            returnValue = Float.valueOf(df.format(fila.ImportePendiente));
+            //returnValue = fila.ImportePendiente;
             break;
         case COLUMN_IMPORTEFACTURADO:
-            returnValue = fila.ImporteFacturado;
+            returnValue = Float.valueOf(df.format(fila.ImporteFacturado));
+            //returnValue = fila.ImporteFacturado;
             break;
         case COLUMN_MONEDA:
             returnValue = fila.TipoMoneda;
             break;
         case COLUMN_TASACAMBIO:
-            returnValue = fila.TasaCambio;
+            returnValue = Float.valueOf(df.format(fila.TasaCambio));
+            //returnValue = fila.TasaCambio;
             break;
         case COLUMN_GM:
-            returnValue = fila.GM;
+            returnValue = Float.valueOf(df.format(fila.GM));
+            //returnValue = fila.GM;
             break;
         case COLUMN_DIASCREDITO:
             returnValue = fila.DiasCredito;
@@ -180,28 +194,10 @@ public class SortTable extends AbstractTableModel{
         return returnValue;
     }
     
-    public SortTable Filtrar(int year){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
+    public ArrayList<Filas> Filtrar(int month, int year, ArrayList<Filas> filtro){
+        ArrayList<Filas> fechas = new ArrayList<>();
         Date inicio = null;
-        Date fin = null;
-        try {
-            inicio = new SimpleDateFormat( "yyyy-MM-dd" ).parse(Integer.toString(year) + "-01-01" );
-            fin = new SimpleDateFormat( "yyyy-MM-dd" ).parse(Integer.toString(year) + "-12-31" );
-        } catch (ParseException ex) {
-            Logger.getLogger(SortTable.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).FechaAutorizacion.compareTo(inicio) >= 0 && datos.get(i).FechaAutorizacion.compareTo(fin) <= 0){
-                filtro.add(datos.get(i));
-            }
-        }
-        return new SortTable(columnas, filtro);
-    }
-    
-    public SortTable Filtrar(int month, int year){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        Date inicio = null;
-        Date fin = null;
+        Date fin;
         try {
             inicio = new SimpleDateFormat( "yyyy-MM-dd" ).parse(Integer.toString(year) + "-" + Integer.toString(month) + "-01" );
         } catch (ParseException ex) {
@@ -211,161 +207,130 @@ public class SortTable extends AbstractTableModel{
         c.setTime(inicio);
         c.set(Calendar.DAY_OF_MONTH, c.getActualMaximum(Calendar.DAY_OF_MONTH));
         fin = c.getTime();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).FechaAutorizacion.compareTo(inicio) >= 0 && datos.get(i).FechaAutorizacion.compareTo(fin) <= 0){
-                filtro.add(datos.get(i));
+        for(int i = 0; i < filtro.size(); i++){
+            if(filtro.get(i).FechaAutorizacion.compareTo(inicio) >= 0 && filtro.get(i).FechaAutorizacion.compareTo(fin) <= 0){
+                fechas.add(filtro.get(i));
             }
         }
-        return new SortTable(columnas, filtro);
+        return fechas;
     }
     
-    public SortTable Filtrar(int firstMonth, int lastMonth, int year){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
+    public ArrayList<Filas> Filtrar(int month, ArrayList<Filas> filtro){
+        ArrayList<Filas> fechas = new ArrayList<>();
         Date inicio = null;
-        Date fin = null;
-        try {
-            inicio = new SimpleDateFormat( "yyyy-MM-dd" ).parse(Integer.toString(year) + "-" + Integer.toString(firstMonth) + "-01" );
-            fin = new SimpleDateFormat( "yyyy-MM-dd" ).parse(Integer.toString(year) + "-" + Integer.toString(lastMonth) + "-01" );
-        } catch (ParseException ex) {
-            Logger.getLogger(SortTable.class.getName()).log(Level.SEVERE, null, ex);
+        Date fin;
+        for(int i = 0; i < filtro.size(); i++){
+            try {
+                inicio = new SimpleDateFormat( "yyyy-MM-dd" ).parse(Integer.toString(getYear(filtro.get(i).FechaAutorizacion)) + "-" + Integer.toString(month) + "-01" );
+            } catch (ParseException ex) {
+                Logger.getLogger(SortTable.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            Calendar c = Calendar.getInstance();
+            c.setTime(inicio);
+            c.set(Calendar.DAY_OF_MONTH, c.getActualMaximum(Calendar.DAY_OF_MONTH));
+            fin = c.getTime();
+            if(filtro.get(i).FechaAutorizacion.compareTo(inicio) >= 0 && filtro.get(i).FechaAutorizacion.compareTo(fin) <= 0){
+                fechas.add(filtro.get(i));
+            }
         }
+        return fechas;
+    }
+    
+    public int getYear(Date fecha){
         Calendar c = Calendar.getInstance();
-        c.setTime(fin);
-        c.set(Calendar.DAY_OF_MONTH, c.getActualMaximum(Calendar.DAY_OF_MONTH));
-        fin = c.getTime();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).FechaAutorizacion.compareTo(inicio) >= 0 && datos.get(i).FechaAutorizacion.compareTo(fin) <= 0){
-                filtro.add(datos.get(i));
-            }
-        }
-        return new SortTable(columnas, filtro);
-    }
-     
-    public SortTable Filtrar(String vendedor){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).Vendedor.equals(vendedor)){
-                filtro.add(datos.get(i));
-            }
-        }
-        return new SortTable(columnas, filtro);
+        c.setTime(fecha);
+        return c.get(Calendar.YEAR);
     }
     
-    public SortTable Filtrar(String vendedor, int year){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).Vendedor.equals(vendedor)){
-                filtro.add(datos.get(i));
-            }
+    TableModel Filtrar(ArrayList<String> mes, ArrayList<Integer> concepto, 
+            Hashtable<Integer, ArrayList> detalle, String anio, String status, 
+            String cliente, ArrayList<String> vendedor) {
+        
+        ArrayList<Filas> filtro = new ArrayList<>();
+        ArrayList<Filas> fechas = new ArrayList<>();
+        boolean existeConcepto;
+        if(mes.size() == 12 && concepto.size() == 15 && vendedor.size() == 6){
+            return new SortTable(columnas, datos);
         }
-        return new SortTable(columnas, filtro).Filtrar(year);
-    }
-    
-    public SortTable Filtrar(String vendedor, int month, int year){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).Vendedor.equals(vendedor)){
-                filtro.add(datos.get(i));
-            }
+        if(mes.isEmpty() || concepto.isEmpty() || vendedor.isEmpty()){
+            return new SortTable(columnas, filtro);
         }
-        return new SortTable(columnas, filtro).Filtrar(month, year);
-    }
-    
-    public SortTable Filtrar(String vendedor, int firstMonth, int lastMonth, int year){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
+        
         for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).Vendedor.equals(vendedor)){
-                filtro.add(datos.get(i));
-            }
-        }
-        return new SortTable(columnas, filtro).Filtrar(firstMonth, lastMonth, year);
-    }
-    
-    public SortTable FiltrarCliente(String cliente){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).NombreComercial.equals(cliente)){
-                filtro.add(datos.get(i));
-            }
-        }
-        return new SortTable(columnas, filtro);
-    }
-    
-    public SortTable FiltrarCliente(String cliente, int year){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).NombreComercial.equals(cliente)){
-                filtro.add(datos.get(i));
-            }
-        }
-        return new SortTable(columnas, filtro).Filtrar(year);
-    }
-    
-    public SortTable FiltrarCliente(String cliente, int month, int year){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).NombreComercial.equals(cliente)){
-                filtro.add(datos.get(i));
-            }
-        }
-        return new SortTable(columnas, filtro).Filtrar(month, year);
-    }
-    
-    public SortTable FiltrarCliente(String cliente, int firstMonth, int lastMonth, int year){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).NombreComercial.equals(cliente)){
-                filtro.add(datos.get(i));
-            }
-        }
-        return new SortTable(columnas, filtro).Filtrar(firstMonth, lastMonth, year);
-    }
-    
-    public SortTable FiltrarStatus(String status){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).Status.equals(status)){
-                filtro.add(datos.get(i));
-            }
-        }
-        return new SortTable(columnas, filtro);
-    }
-    
-    public SortTable FiltrarConcepto(String tipo){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        for(int i = 0; i < datos.size(); i++){
-            if(datos.get(i).ConceptoVenta.equals(tipo)){
-                filtro.add(datos.get(i));
-            }
-        }
-        return new SortTable(columnas, filtro);
-    }
-    
-    public SortTable FiltrarConcepto(String tipo, String departamento){
-        ArrayList<Filas> filtro = new ArrayList<Filas>();
-        if(departamento.equals("Ventas")){
-            for(int i = 0; i < datos.size(); i++){
-                if(     datos.get(i).Vendedor.equals("Mario Gonzalez") || 
-                        datos.get(i).Vendedor.equals("Daniel Martinez") || 
-                        datos.get(i).Vendedor.equals("Marco Padilla") ||
-                        datos.get(i).Vendedor.equals("Alberto Lomeli")){
-                    filtro.add(datos.get(i));
+            existeConcepto = false;
+            for(int indice : concepto){
+                if(Float.parseFloat(String.valueOf(detalle.get(datos.get(i).FolioVenta).get(indice + 1))) > 0){
+                    existeConcepto = true;
+                    break;
                 }
             }
-        }
-        else{
-            for(int i = 0; i < datos.size(); i++){
-                if(     datos.get(i).Vendedor.equals("Mariano Ruiz") || 
-                        datos.get(i).Vendedor.equals("Rosario Arellano")){
-                    filtro.add(datos.get(i));
-                }
+            if(     (status.equals(datos.get(i).Status) || status.equals("Todos")) &&
+                    (cliente.equals(datos.get(i).NombreComercial) || cliente.equals("Todos")) &&
+                    vendedor.contains(datos.get(i).Vendedor) &&
+                    existeConcepto){
+                filtro.add(datos.get(i));
             }
         }
-        return new SortTable(columnas, filtro).FiltrarConcepto(tipo);
+        
+        if(filtro.isEmpty()){
+            return new SortTable(columnas, filtro);
+        }
+        
+        for(String m : mes){
+            int numero;
+            switch(m){
+                case "Enero":
+                    numero = 1;
+                    break;
+                case "Febrero":
+                    numero = 2;
+                    break;
+                case "Marzo":
+                    numero = 3;
+                    break;
+                case "Abril":
+                    numero = 4;
+                    break;
+                case "Mayo":
+                    numero = 5;
+                    break;
+                case "Junio":
+                    numero = 6;
+                    break;
+                case "Julio":
+                    numero = 7;
+                    break;
+                case "Agosto":
+                    numero = 8;
+                    break;
+                case "Septiembre":
+                    numero = 9;
+                    break;
+                case "Octubre":
+                    numero = 10;
+                    break;
+                case "Noviembre":
+                    numero = 11;
+                    break;
+                case "Diciembre":
+                    numero = 12;
+                    break;
+                default:
+                    numero = 0;
+                    break;
+            }
+            if(anio.equals("Todos")){
+                fechas.addAll(Filtrar(numero, filtro));
+            }
+            else{
+                fechas.addAll(Filtrar(numero, Integer.parseInt(anio),filtro));
+            }
+        }
+        return new SortTable(columnas, fechas);
     }
     
     public void modificar(int id, Filas f){
-        int i = 0;
+        int i;
         for(i = 0; i < datos.size(); i++){
             if(datos.get(i).FolioVenta == id){
                 datos.remove(i);
@@ -386,9 +351,8 @@ public class SortTable extends AbstractTableModel{
     @Override
     public void setValueAt(Object value, int rowIndex, int columnIndex) {
         Filas fila = datos.get(rowIndex);
-        if (columnIndex == COLUMN_NO) {
+        if(columnIndex == COLUMN_NO){
             fila.setIndex((int) value);
         }      
     }
-    
 }

@@ -4,21 +4,29 @@
  */
 package ventas;
 
+import ventas.Utilerias.TableColumnAdjuster;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.Vector;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.*;
 import javax.swing.*;
-import javax.swing.table.TableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 
 public class Ventas extends JFrame implements ActionListener, Runnable{
 
     int idUsuario;
+    boolean admin = false;
+    
+    Hashtable<Integer,ArrayList> hstDetalleVenta = new Hashtable<>();
     
     public SortTable modeloMostrar = null;
     public SortTable modeloRegistrar = null;
@@ -26,29 +34,29 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     TableColumnAdjuster tcaMostrar;
     TableColumnAdjuster tcaRegistrar;
     
-    String[] columnasRegistrar = {"ID", "Fecha Autorización", "Orden de Compra", "Cotización", "Folio Servicio",
-        "Nombre Comercial", "Razón Social", "Concepto de Venta", "Fecha Orden GINSATEC", "Orden de compra GINSATEC", "Fecha Aproximada Entrega",
-        "Fecha Recibido", "Material Recibido", "Requiere Instalación", "Requiere Canalización",
-        "Fecha Factura", "Factura", "Vendedor", "Importe", "ImportePendiente", "ImporteFacturado", "Tipo Moneda", 
-        "Tasa de cambio", "GM", "Días de Credito", "Fecha Vencimiento Pago", "Status", "Notas"};
+    String[] columnasRegistrar = {"<html>ID<br>&nbsp;</html>", "<html>Fecha <br>Autorización</html>", "<html>Orden de <br>Compra</html>", "Cotización", "<html>Folio de <br>Servicio</html>",
+        "Nombre Comercial", "Razón Social", "<html>Concepto <br>de Venta<html>", "<html>Fecha de Orden <br>GINSATEC</html>", "<html>Orden de compra <br>GINSATEC</html>", "<html>Fecha Aproximada <br>de Entrega</html>",
+        "<html>Fecha de <br>Recibido</html>", "<html>Material <br>Recibido</html>", "<html>Requiere <br>Instalación</html>", "<html>Requiere <br>Canalización</html>",
+        "<html>Fecha <br>Factura</html>", "Factura", "Vendedor", "Importe", "<html>Importe <br>Pendiente</html>", "<html>Importe <br>Facturado</html>", "<html>Tipo <br>Moneda</html>", 
+        "<html>Tasa de <br>cambio</html>", "GM", "<html>Días de <br>Credito</html>", "<html>Fecha de <br>Vencimiento Pago</html>", "Status", "Notas"};
     
-    String[] columnasMostrar = {"ID", "Fecha Autorización", "Orden de Compra", "Cotización", "Folio Servicio",
-        "Nombre Comercial", "Razón Social", "Concepto de Venta", "Fecha Orden GINSATEC", "Orden de compra GINSATEC", "Fecha Aproximada Entrega",
-        "Fecha Recibido", "Material Recibido", "Requiere Instalación", "Requiere Canalización",
-        "Fecha Factura", "Factura", "Vendedor", "Importe", "ImportePendiente", "ImporteFacturado", "Tipo Moneda", 
-        "Tasa de cambio", "GM", "Días de Credito", "Fecha Vencimiento Pago", "Status", "Notas", "Capturó"};
+    String[] columnasMostrar = {"<html>ID<br>&nbsp;</html>", "<html>Fecha <br>Autorización</html>", "<html>Orden de <br>Compra</html>", "Cotización", "<html>Folio de <br>Servicio</html>",
+        "Nombre Comercial", "Razón Social", "<html>Concepto <br>de Venta<html>", "<html>Fecha de Orden <br>GINSATEC</html>", "<html>Orden de compra <br>GINSATEC</html>", "<html>Fecha Aproximada <br>de Entrega</html>",
+        "<html>Fecha de <br>Recibido</html>", "<html>Material <br>Recibido</html>", "<html>Requiere <br>Instalación</html>", "<html>Requiere <br>Canalización</html>",
+        "<html>Fecha <br>Factura</html>", "Factura", "Vendedor", "Importe", "<html>Importe <br>Pendiente</html>", "<html>Importe <br>Facturado</html>", "<html>Tipo <br>Moneda</html>", 
+        "<html>Tasa de <br>cambio</html>", "GM", "<html>Días de <br>Credito</html>", "<html>Fecha de <br>Vencimiento Pago</html>", "Status", "Notas", "Capturó"};
     
     int minYear = 0;
     WaitWindow window;
     
-    String[] filtros = {"Sin Filtro", "Mes", "Trimestre", "Año", "Vendedor-Mensual", "Vendedor-Trimestral", "Vendedor-Anual", "Vendedor", "Cliente-Mensual", "Cliente-Trimestral", "Cliente-Anual", "Cliente", "Status", "Concepto de Venta"};
-    String[] filtrosMes = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
-    String[] filtrosTrimestre = {"Enero-Marzo", "Abril-Junio", "Julio-Septiembre", "Octubre-Diciembre"};
-    String[] filtrosStatus = {"Pendiente", "Activa", "Pagada", "No pagada", "Cancelada"};
-    String[] filtrosConcepto = {"Sistemas", "Servicio-Administración", "Servicio-Ventas", "Poliza-Administración", "Poliza-Ventas", "Refacciones-Administración", "Refacciones-Ventas", "Reparaciones-Administración", "Reparaciones-Ventas"};
-    Vector<String> filtrosVendedor; // = {"Mario Gonzalez", "Marco Padilla", "Daniel Martinez", "Rosario Arellano", "Alberto Lomeli", "Mariano Ruiz"};
-    Vector<String> filtrosAnio;
-    Vector<String> filtrosCliente;
+    String[] filtrosStatus =    {   "Todos", "Pendiente", "Activa", "Pagada", "No pagada", "Cancelada"};
+    String[] filtrosMeses =     {   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre", "Todos"};
+    String[] filtrosConcepto =  {   "Automatización", "Control de Accesos", "CCTV", "Detección de Incendios", "Sistemas de Seguridad", 
+                                    "Paciente-Enfermera", "Supresión de Incendios", "Viaticos", "Canalizaciones y cableados", 
+                                    "Programación y puesta en marcha", "Mano de Obra", "Poliza", "Refacciones", "Reparaciones", "Varios", "Todos"};
+    ArrayList<String> filtrosVendedor;
+    ArrayList<String> filtrosAnio;
+    ArrayList<String> filtrosCliente;
     
     JTabbedPane principal = new JTabbedPane();
     JPanel pnlMostrar = new JPanel(new BorderLayout());
@@ -61,21 +69,30 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     JPanel pnlBotones = new JPanel();
     JPanel pnlRegistrar = new JPanel();
     
-    DefaultComboBoxModel modeloFiltros = new DefaultComboBoxModel(filtros);
-    DefaultComboBoxModel modeloMes = new DefaultComboBoxModel();
-    DefaultComboBoxModel modeloAnio = new DefaultComboBoxModel();
-    DefaultComboBoxModel modeloExtra = new DefaultComboBoxModel();
+    ArrayList<JCheckBox> chkMeses = new ArrayList<>();
     
-    JLabel lblFiltros = new JLabel("Filtros:");
-    JComboBox cmbFiltros = new JComboBox(modeloFiltros);
-    JLabel lblOpcionesFiltros = new JLabel("Opciones:");
-    JComboBox cmbOpcionesMes = new JComboBox(modeloMes);
-    JComboBox cmbOpcionesAnio = new JComboBox(modeloAnio);
-    JComboBox cmbOpcionesExtra = new JComboBox(modeloExtra);
-    JPanel pnlFiltros = new JPanel(new GridLayout(1,5,50,0));
+    DefaultComboBoxModel modeloStatus = new DefaultComboBoxModel(filtrosStatus);
+    DefaultComboBoxModel modeloAnio;
+    DefaultComboBoxModel modeloCliente;
     
-    JLabel lblDolares = new JLabel("Dolares");
-    JLabel lblPesos = new JLabel("Pesos");
+    JComboBox cmbAnio;
+    JComboBox cmbStatus;
+    JComboBox cmbCliente;
+    
+    ArrayList<JCheckBox> chkConceptos = new ArrayList<>();
+    
+    ArrayList<JCheckBox> chkVendedores = new ArrayList<>();
+    
+    JPanel pnlMeses = new JPanel(new GridLayout(7,2));
+    JPanel pnlConceptos = new JPanel(new GridLayout(8,2));
+    JPanel pnlComboBox = new JPanel(new GridLayout(6,1,10,5));
+    JPanel pnlVendedor = new JPanel(new GridLayout(4,2));
+    JPanel pnlFiltros = new JPanel(new GridLayout(1,4,10,0));
+    
+    ArrayList<JTextField> txtTotalesConceptos = new ArrayList<>();
+    
+    JLabel lblDolares = new JLabel("Dolares", SwingConstants.RIGHT);
+    JLabel lblPesos = new JLabel("Pesos", SwingConstants.RIGHT);
     JLabel lblTotal = new JLabel("Total");
     JTextField txtTotalDolares = new JTextField();
     JTextField txtTotalPesos = new JTextField();
@@ -92,6 +109,8 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     JTextField txtGM = new JTextField();
     
     JPanel pnlTotales = new JPanel(new GridLayout(3,6,50,0));
+    JPanel pnlTotalesConcepto = new JPanel(new GridLayout(4,8,5,5));
+    JPanel pnlSumatoria = new JPanel(new BorderLayout());
 
     Ventas(int idUser, String rol, WaitWindow w){
         super("Registro de Ventas");
@@ -102,17 +121,29 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         idUsuario = idUser;
         window = w;
         
-        if(rol.equals("admin")){
-            inicializarAdmin();
-        }
-        else if(rol.equals("administracion")){
-            inicializarAdministrador();
-        }
-        else if(rol.equals("ventas")){
-            inicializarVendedor();
+        switch (rol) {
+            case "admin":
+                admin = true;
+                for(int i = 0; i < filtrosConcepto.length - 1; i++){
+                    pnlTotalesConcepto.add(new JLabel(filtrosConcepto[i], SwingConstants.RIGHT));
+                    txtTotalesConceptos.add(new JTextField());
+                    txtTotalesConceptos.get(i).setEditable(false);
+                    txtTotalesConceptos.get(i).setHorizontalAlignment(SwingConstants.RIGHT);
+                    pnlTotalesConcepto.add(txtTotalesConceptos.get(i));
+                }   inicializarAdmin();
+                break;
+            case "administracion":
+                inicializarAdministrador();
+                break;
+            case "ventas":
+                inicializarVendedor();
+                break;
+            default:
+                break;
         }
         
         this.addWindowListener(new WindowAdapter(){
+            @Override
             public void windowClosing(WindowEvent e)
             {
                 new Servidor().cerrarServidor();
@@ -123,7 +154,7 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
     
-    public void inicializarAdmin(){
+    public final void inicializarAdmin(){
         crearTablas();
         buscarAnioFiltros();
         filtrosVendedor = cargarVendedores();
@@ -132,13 +163,83 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         window.dispose();
         window.terminate();
         
-        pnlFiltros.add(lblFiltros);
-        pnlFiltros.add(cmbFiltros);
-        pnlFiltros.add(lblOpcionesFiltros);
-        pnlFiltros.add(cmbOpcionesMes);
-        pnlFiltros.add(cmbOpcionesAnio);
-        pnlFiltros.add(cmbOpcionesExtra);
+        inicializarTotales();
+        
+        inicializarFiltros();
+        
+        pnlMostrar.add(pnlFiltros, BorderLayout.NORTH);
+        pnlMostrar.add(pnlTablaMostrar, BorderLayout.CENTER);
+        pnlMostrar.add(pnlSumatoria, BorderLayout.SOUTH);
+        
+        pnlBotones.add(btnNuevo, BorderLayout.WEST);
+        pnlBotones.add(btnModificar, BorderLayout.EAST);
+        pnlRegistrar.setLayout(new BorderLayout());
+        pnlRegistrar.add(pnlTablaRegistrar, BorderLayout.CENTER);
+        pnlRegistrar.add(pnlBotones, BorderLayout.SOUTH);
 
+        principal.addTab("Registrar", pnlRegistrar);
+        principal.addTab("Ver", pnlMostrar);
+
+        this.setLayout(new BorderLayout());
+        this.getContentPane().add(principal);
+
+        btnNuevo.addActionListener(this);
+        btnModificar.addActionListener(this);
+        
+    }
+    
+    public final void inicializarAdministrador(){
+        crearTablas();
+        buscarAnioFiltros();
+        filtrosVendedor = cargarVendedores();
+        filtrosCliente = cargarClientes();
+        
+        window.dispose();
+        window.terminate();
+        
+        pnlBotones.add(btnNuevo, BorderLayout.WEST);
+        pnlBotones.add(btnModificar, BorderLayout.EAST);
+        pnlRegistrar.setLayout(new BorderLayout());
+        pnlRegistrar.add(pnlTablaRegistrar, BorderLayout.CENTER);
+        pnlRegistrar.add(pnlBotones, BorderLayout.SOUTH);
+        
+        inicializarFiltros();
+        
+        pnlMostrar.add(pnlFiltros, BorderLayout.NORTH);
+        pnlMostrar.add(pnlTablaMostrar, BorderLayout.CENTER);
+
+        principal.addTab("Registrar", pnlRegistrar);
+        principal.addTab("Ver", pnlMostrar);
+        
+        this.setLayout(new BorderLayout());
+        this.getContentPane().add(principal);
+
+        btnNuevo.addActionListener(this);
+        btnModificar.addActionListener(this);
+    }
+    
+    public final void inicializarVendedor(){
+        crearTablas();
+        buscarAnioFiltros();
+        filtrosVendedor = cargarVendedores();
+        filtrosCliente = cargarClientes();
+        
+        window.dispose();
+        window.terminate();
+        
+        inicializarFiltros();
+        
+        pnlMostrar.add(pnlFiltros, BorderLayout.NORTH);
+        pnlMostrar.add(pnlTablaMostrar, BorderLayout.CENTER);
+        
+        principal.addTab("Ver", pnlMostrar);
+
+        this.setLayout(new BorderLayout());
+        this.getContentPane().add(principal);
+    }
+    
+    public void inicializarTotales(){
+        
         pnlTotales.add(new JLabel(""));
         pnlTotales.add(lblTotal);
         pnlTotales.add(lblPendiente);
@@ -166,101 +267,104 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         txtUtilidadDolares.setEditable(false);
         txtUtilidadPesos.setEditable(false);
         txtGM.setEditable(false);
-        if(tblTablaMostrar.getRowCount() == 0){
-            cmbFiltros.setEnabled(false);
-        }
-        cmbOpcionesMes.setVisible(false);
-        cmbOpcionesAnio.setVisible(false);
-        cmbOpcionesExtra.setVisible(false);
         
-        pnlMostrar.add(pnlFiltros, BorderLayout.NORTH);
-        pnlMostrar.add(pnlTablaMostrar, BorderLayout.CENTER);
-        pnlMostrar.add(pnlTotales, BorderLayout.SOUTH);
+        txtTotalDolares.setHorizontalAlignment(SwingConstants.RIGHT);
+        txtTotalPesos.setHorizontalAlignment(SwingConstants.RIGHT);
+        txtPendienteDolares.setHorizontalAlignment(SwingConstants.RIGHT);
+        txtPendientePesos.setHorizontalAlignment(SwingConstants.RIGHT);
+        txtFacturadoDolares.setHorizontalAlignment(SwingConstants.RIGHT);
+        txtFacturadoPesos.setHorizontalAlignment(SwingConstants.RIGHT);
+        txtUtilidadDolares.setHorizontalAlignment(SwingConstants.RIGHT);
+        txtUtilidadPesos.setHorizontalAlignment(SwingConstants.RIGHT);
+        txtGM.setHorizontalAlignment(SwingConstants.RIGHT);
         
-        pnlBotones.add(btnNuevo, BorderLayout.WEST);
-        pnlBotones.add(btnModificar, BorderLayout.EAST);
-        pnlRegistrar.setLayout(new BorderLayout());
-        pnlRegistrar.add(pnlTablaRegistrar, BorderLayout.CENTER);
-        pnlRegistrar.add(pnlBotones, BorderLayout.SOUTH);
-
-        principal.addTab("Registrar", pnlRegistrar);
-        principal.addTab("Ver", pnlMostrar);
-
-        this.setLayout(new BorderLayout());
-        this.getContentPane().add(principal);
-
-        btnNuevo.addActionListener(this);
-        btnModificar.addActionListener(this);
-        cmbFiltros.addActionListener(this);
-        cmbOpcionesMes.addActionListener(this);
-        cmbOpcionesAnio.addActionListener(this);
-        cmbOpcionesExtra.addActionListener(this);
+        pnlTotales.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
+        pnlTotalesConcepto.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
+        
+        pnlSumatoria.add(pnlTotalesConcepto, BorderLayout.SOUTH);
+        pnlSumatoria.add(pnlTotales, BorderLayout.NORTH);
+        pnlSumatoria.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().width-20, 170/*(int) Toolkit.getDefaultToolkit().getScreenSize().height/5*/));
     }
     
-    public void inicializarAdministrador(){
-        crearTablas();
-        buscarAnioFiltros();
-        filtrosVendedor = cargarVendedores();
-        filtrosCliente = cargarClientes();
-        
-        window.dispose();
-        window.terminate();
-        
-        pnlBotones.add(btnNuevo, BorderLayout.WEST);
-        pnlBotones.add(btnModificar, BorderLayout.EAST);
-        pnlRegistrar.setLayout(new BorderLayout());
-        pnlRegistrar.add(pnlTablaRegistrar, BorderLayout.CENTER);
-        pnlRegistrar.add(pnlBotones, BorderLayout.SOUTH);
-
-        principal.addTab("Registrar", pnlRegistrar);
-        
-        this.setLayout(new BorderLayout());
-        this.getContentPane().add(principal);
-
-        btnNuevo.addActionListener(this);
-        btnModificar.addActionListener(this);
-    }
-    
-    public void inicializarVendedor(){
-        crearTablas();
-        buscarAnioFiltros();
-        filtrosVendedor = cargarVendedores();
-        filtrosCliente = cargarClientes();
-        
-        window.dispose();
-        window.terminate();
-        
-        pnlFiltros.add(lblFiltros);
-        pnlFiltros.add(cmbFiltros);
-        pnlFiltros.add(lblOpcionesFiltros);
-        pnlFiltros.add(cmbOpcionesMes);
-        pnlFiltros.add(cmbOpcionesAnio);
-        pnlFiltros.add(cmbOpcionesExtra);
-
-        if(tblTablaMostrar.getRowCount() == 0){
-            cmbFiltros.setEnabled(false);
+    public void inicializarFiltros(){
+        for(int i = 0; i < filtrosMeses.length; i++){
+            chkMeses.add(new JCheckBox(filtrosMeses[i]));
+            chkMeses.get(i).addActionListener(this);
+            chkMeses.get(i).setSelected(true);
+            pnlMeses.add(chkMeses.get(i));
         }
-        cmbOpcionesMes.setVisible(false);
-        cmbOpcionesAnio.setVisible(false);
-        cmbOpcionesExtra.setVisible(false);
+        filtrosAnio.add(0, "Todos");
+        modeloAnio = new DefaultComboBoxModel(filtrosAnio.toArray());
+        filtrosCliente.add(0, "Todos");
+        modeloCliente = new DefaultComboBoxModel(filtrosCliente.toArray());
+        cmbAnio = new JComboBox(modeloAnio);
+        cmbCliente = new JComboBox(modeloCliente);
+        cmbStatus = new JComboBox(modeloStatus);
         
-        pnlMostrar.add(pnlFiltros, BorderLayout.NORTH);
-        pnlMostrar.add(pnlTablaMostrar, BorderLayout.CENTER);
+        pnlComboBox.add(new JLabel("Año", SwingConstants.LEFT));
+        pnlComboBox.add(cmbAnio);
+        pnlComboBox.add(new JLabel("Status", SwingConstants.LEFT));
+        pnlComboBox.add(cmbStatus);
+        pnlComboBox.add(new JLabel("Cliente", SwingConstants.LEFT));
+        pnlComboBox.add(cmbCliente);
         
-        principal.addTab("Ver", pnlMostrar);
-
-        this.setLayout(new BorderLayout());
-        this.getContentPane().add(principal);
-
-        cmbFiltros.addActionListener(this);
-        cmbOpcionesMes.addActionListener(this);
-        cmbOpcionesAnio.addActionListener(this);
-        cmbOpcionesExtra.addActionListener(this);
+        for(int i = 0; i < filtrosConcepto.length; i++){
+            String con = filtrosConcepto[i];
+            for(int j = (con.length()/2) - 1; j < con.length(); j++){
+                if(con.charAt(j) == ' ' || con.charAt(j) == '-'){
+                    con = "<html>" + con.substring(0,j) + "<br>" + con.substring(j+1, con.length()) + "</html>";
+                    break;
+                }
+            }
+            chkConceptos.add(new JCheckBox(con));
+            chkConceptos.get(i).addActionListener(this);
+            chkConceptos.get(i).setSelected(true);
+            pnlConceptos.add(chkConceptos.get(i));
+        }
+        
+        filtrosVendedor.add("Todos");
+        for(int i = 0; i < filtrosVendedor.size(); i++){
+            chkVendedores.add(new JCheckBox("<html>" + filtrosVendedor.get(i).replaceAll(" ", "<br>") + "</html>"));
+            chkVendedores.get(i).addActionListener(this);
+            chkVendedores.get(i).setSelected(true);
+            pnlVendedor.add(chkVendedores.get(i));
+        }
+        
+        pnlMeses.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY), BorderFactory.createEmptyBorder(3, 20, 3, 20)));
+        pnlConceptos.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY), BorderFactory.createEmptyBorder(3, 20, 3, 20)));
+        pnlComboBox.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY), BorderFactory.createEmptyBorder(3, 20, 3, 20)));
+        pnlVendedor.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY), BorderFactory.createEmptyBorder(3, 20, 3, 20)));
+        
+        pnlFiltros.add(pnlMeses);
+        pnlFiltros.add(pnlComboBox);
+        pnlFiltros.add(pnlVendedor);
+        pnlFiltros.add(new JScrollPane(pnlConceptos));
+        
+        cmbAnio.addActionListener(this);
+        cmbStatus.addActionListener(this);
+        cmbCliente.addActionListener(this);
+        
+        pnlFiltros.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth() - 30, (int) Toolkit.getDefaultToolkit().getScreenSize().getHeight()/5));
+        cmbAnio.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().width/8, 30));
+        cmbCliente.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().width/8, 20));
+        cmbStatus.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().width/8, 10));
     }
     
     public void crearTablas(){
-        tblTablaRegistrar = CargarDatos(idUsuario);
+        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+        rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
+        if(admin){
+            tblTablaRegistrar = CargarDatos(0);
+        }
+        else{
+            tblTablaRegistrar = CargarDatos(idUsuario);
+        }
         pnlTablaRegistrar = new JScrollPane(tblTablaRegistrar);
+        tblTablaRegistrar.getColumnModel().getColumn(18).setCellRenderer(rightRenderer);
+        tblTablaRegistrar.getColumnModel().getColumn(19).setCellRenderer(rightRenderer);
+        tblTablaRegistrar.getColumnModel().getColumn(20).setCellRenderer(rightRenderer);
+        tblTablaRegistrar.getColumnModel().getColumn(22).setCellRenderer(rightRenderer);
+        tblTablaRegistrar.getColumnModel().getColumn(23).setCellRenderer(rightRenderer);
         tblTablaRegistrar.setFillsViewportHeight(true);
         tblTablaRegistrar.setDefaultEditor(Object.class, null);
         tblTablaRegistrar.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
@@ -277,6 +381,11 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         
         tblTablaMostrar = CargarDatos(0);
         pnlTablaMostrar = new JScrollPane(tblTablaMostrar);
+        tblTablaMostrar.getColumnModel().getColumn(18).setCellRenderer(rightRenderer);
+        tblTablaMostrar.getColumnModel().getColumn(19).setCellRenderer(rightRenderer);
+        tblTablaMostrar.getColumnModel().getColumn(20).setCellRenderer(rightRenderer);
+        tblTablaMostrar.getColumnModel().getColumn(22).setCellRenderer(rightRenderer);
+        tblTablaMostrar.getColumnModel().getColumn(23).setCellRenderer(rightRenderer);
         tblTablaMostrar.setFillsViewportHeight(true);
         tblTablaMostrar.setDefaultEditor(Object.class, null);
         tblTablaMostrar.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
@@ -294,11 +403,18 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     }
 
     public void crearTablas(JTable tabla){
+        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+        rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
         pnlTablaMostrar = new JScrollPane(tabla);
+        tblTablaMostrar.getColumnModel().getColumn(18).setCellRenderer(rightRenderer);
+        tblTablaMostrar.getColumnModel().getColumn(19).setCellRenderer(rightRenderer);
+        tblTablaMostrar.getColumnModel().getColumn(20).setCellRenderer(rightRenderer);
+        tblTablaMostrar.getColumnModel().getColumn(22).setCellRenderer(rightRenderer);
+        tblTablaMostrar.getColumnModel().getColumn(23).setCellRenderer(rightRenderer);
         tblTablaMostrar.setFillsViewportHeight(true);
         tblTablaMostrar.setDefaultEditor(Object.class, null);
         tblTablaMostrar.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        TableColumnAdjuster tcaMostrar = new TableColumnAdjuster(tblTablaMostrar);
+        tcaMostrar = new TableColumnAdjuster(tblTablaMostrar);
         tcaMostrar.adjustColumns();
         tblTablaMostrar.setAutoCreateRowSorter(true);
         tblTablaMostrar.getTableHeader().setReorderingAllowed(false);
@@ -315,9 +431,15 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         //Importe = 18
         //Importe Pendiente = 19
         //Importe Facturado = 20
+        //Tipo Moneda = 21
         //Tasa de Cambio = 22
         //GM = 23
-        DecimalFormat df = new DecimalFormat("#.00");
+        calcularSumatoria();
+        DecimalFormat df = new DecimalFormat("#,###.00");
+        DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
+        symbols.setGroupingSeparator(',');
+        symbols.setDecimalSeparator('.');
+        df.setDecimalFormatSymbols(symbols);
         double total, pendiente, facturado, totalPesos, pendientePesos, facturadoPesos, utilidadDolares, utilidadPesos, GMProm;
         total = pendiente = facturado = totalPesos = pendientePesos = facturadoPesos = utilidadDolares = utilidadPesos = GMProm = 0;
         for(int i = 0; i < tblTablaMostrar.getRowCount(); i++){
@@ -360,23 +482,114 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         txtGM.setText(df.format(GMProm) + "%");
     }
     
+    public void calcularSumatoria(){
+        //Importe = 18
+        //Importe Pendiente = 19
+        //Importe Facturado = 20
+        //Tipo Moneda = 21
+        //Tasa de Cambio = 22
+        //GM = 23
+        DecimalFormat df = new DecimalFormat("#,###.00");
+        DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
+        symbols.setGroupingSeparator(',');
+        symbols.setDecimalSeparator('.');
+        df.setDecimalFormatSymbols(symbols);
+        Float[] sum = new Float[filtrosConcepto.length - 1];
+        float importe;
+        float aux = 0;
+        for(int i = 0; i < filtrosConcepto.length - 1; i++){
+            sum[i] = aux;
+        }
+        try{
+            ArrayList<Float> lista;
+            for(int i = 0; i < tblTablaMostrar.getRowCount(); i++){
+                lista = hstDetalleVenta.get(Integer.valueOf(tblTablaMostrar.getValueAt(i, 0).toString()));
+                if(lista == null) break;
+                importe = lista.get(0);
+                for(int j = 1; j < lista.size(); j++){
+                    if(tblTablaMostrar.getValueAt(i, 21).equals("Pesos")){
+                        aux = Float.parseFloat(String.valueOf(tblTablaMostrar.getValueAt(i, 22)));
+                        sum[j-1] += ((importe/aux) * (lista.get(j)/100));
+                    }
+                    else{
+                        sum[j-1] += (importe * (lista.get(j)/100));
+                    }
+                }
+            }
+        }
+        catch(NumberFormatException ex){
+            Logger.getLogger(Ventas.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        for(int i = 0; i < txtTotalesConceptos.size(); i++){
+            txtTotalesConceptos.get(i).setText("$ " + df.format(sum[i]));
+        }
+    }
+    
+    public String crearDetalle(int folio){
+        DecimalFormat df = new DecimalFormat("#,###.00");
+        DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
+        symbols.setGroupingSeparator(',');
+        symbols.setDecimalSeparator('.');
+        df.setDecimalFormatSymbols(symbols);
+        String detalle;
+        float aux, importe;
+        ArrayList<Float> lista = hstDetalleVenta.get(folio);
+        detalle = "";
+        importe = lista.get(0);
+        aux = lista.get(1);
+        if(aux > 0) detalle += "Automatización:\t\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(2);
+        if(aux > 0) detalle += "Control de Accesos:\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(3);
+        if(aux > 0) detalle += "CCTV:\t\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(4);
+        if(aux > 0) detalle += "Detección de Incendios:\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(5);
+        if(aux > 0) detalle += "Sistemas de Seguridad:\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(6);
+        if(aux > 0) detalle += "Paciente-Enfermera:\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(7);
+        if(aux > 0) detalle += "Supresión de Incendios:\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(8);
+        if(aux > 0) detalle += "Viaticos:\t\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(9);
+        if(aux > 0) detalle += "Canalización y cableado:\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(10);
+        if(aux > 0) detalle += "Puesta en marcha:\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(11);
+        if(aux > 0) detalle += "Mano de Obra:\t\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(12);
+        if(aux > 0) detalle += "Poliza:\t\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(13);
+        if(aux > 0) detalle += "Refacciones:\t\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(14);
+        if(aux > 0) detalle += "Reparaciones:\t\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        aux = lista.get(15);
+        if(aux > 0) detalle += "Varios:\t\t$" + df.format(importe*(aux/100)) + "\t" + aux + "%\n";
+        return detalle;
+    }
+    
     public Connection ConectarDB(){
-        //new Servidor().arrancarServidor();
+        Servidor s = new Servidor();
+        s.arrancarServidor();
+        String ip = s.obtenerIP();
+        System.out.println("IP obtenida: " + ip);
         Connection c = null;
         try {
-            Class.forName("org.postgresql.Driver"); //jdbc:postgresql://localhost:5432/sistemabasedatos
-            //c = DriverManager.getConnection("jdbc:postgresql://localhost:5344/SistemaBaseDatos", "Sersitec-Laboratorio", "");
-            c = DriverManager.getConnection("jdbc:postgresql://localhost:3389/VentasDB", "usuario", "Sersitec886");
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println(e.getClass().getName()+": "+e.getMessage());
+            Class.forName("org.postgresql.Driver");
+            c = DriverManager.getConnection("jdbc:postgresql://" + ip + ":3389/VentasDB", "usuario", "Sersitec886");
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(Ventas.class.getName()).log(Level.SEVERE, null, ex);
+            if(s.reiniciarServidor()){
+                c = ConectarDB();
+            }
         }
         return c;
     }
     
     public void buscarAnioFiltros(){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
         }
@@ -394,21 +607,21 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                 if(consulta.next()){
                     max = consulta.getInt("date_part") + 1;
                 }
-                filtrosAnio = new Vector<String>();
+                filtrosAnio = new ArrayList<>();
                 for(int i = minYear; i <= minYear + max; i++){
                     filtrosAnio.add(Integer.toString(i));
                 }
                 comando.close();
                 c.close();
             } catch (SQLException ex) {
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Ventas.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
 
     public JTable CargarDatos(int usuario){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
 
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
@@ -418,7 +631,7 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
             try {
                 int x = 0;
                 comando = c.createStatement();
-                String sql = "";
+                String sql;
                 if(usuario != 0){
                     sql = "select count(1) from ventas where capturo=" + usuario;
                 }
@@ -455,27 +668,21 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                 }
                 consulta = comando.executeQuery(sql);
                 int i = 0;
-                
-                //Prueba
-                ArrayList<Filas> lista = new ArrayList<Filas>();
+
+                ArrayList<Filas> lista = new ArrayList<>();
                 ArrayList<Object> fila;
                 while(consulta.next()){
-                    fila = new ArrayList<Object>();
+                    fila = new ArrayList<>();
                     int folioVenta = consulta.getInt("folioventa");
                     fila.add(folioVenta);
-                    //java.sql.Date FechaAutorizacion = consulta.getDate("fechaautorizacion");
                     fila.add(consulta.getDate("fechaautorizacion"));
-                    //String NombreCliente = consulta.getString("nombrecomercial");
                     fila.add(consulta.getString("nombrecomercial"));
-                    //String NombreCliente = consulta.getString("razonsocial");
                     fila.add(consulta.getString("razonsocial"));
-                    //String ConceptoVenta = consulta.getString("conceptoventa");
-                    fila.add(consulta.getString("conceptoventa"));
-                    //java.sql.Date FechaEntrega = consulta.getDate("fechaentrega");
+                    cargarDetalleVenta();
+                    fila.add("Detalle");
                     fila.add(consulta.getDate("fechaentrega"));
-                    //java.sql.Date FechaRecibido = consulta.getDate("fecharecibido");
                     fila.add(consulta.getDate("fecharecibido"));
-                    String MaterialRecibido = "";
+                    String MaterialRecibido;
                     if(consulta.getBoolean("materialrecibido")){
                         MaterialRecibido = "Si";
                     }
@@ -483,7 +690,7 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                         MaterialRecibido = "No";
                     }
                     fila.add(MaterialRecibido);
-                    String RequiereInstalacion = "";
+                    String RequiereInstalacion;
                     if(consulta.getBoolean("requiereinstalacion")){
                         RequiereInstalacion = "Si";
                     }
@@ -491,7 +698,7 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                         RequiereInstalacion = "No";
                     }
                     fila.add(RequiereInstalacion);
-                    String RequiereCanalizacion = "";
+                    String RequiereCanalizacion;
                     if(consulta.getBoolean("requierecanalizacion")){
                         RequiereCanalizacion = "Si";
                     }
@@ -499,55 +706,37 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                         RequiereCanalizacion = "No";
                     }
                     fila.add(RequiereCanalizacion);
-                    //String Vendedor = consulta.getString("vendedor");
                     fila.add(consulta.getString("vendedor"));
-                    //float Importe = consulta.getFloat("importe");
                     fila.add(consulta.getFloat("importe"));
-                    //float Importe = consulta.getFloat("importependiente");
                     fila.add(consulta.getFloat("importependiente"));
-                    //float Importe = consulta.getFloat("importefacturado");
                     fila.add(consulta.getFloat("importefacturado"));
-                    //String TipoMoneda = consulta.getString("tipomoneda");
                     fila.add(consulta.getString("tipomoneda"));
-                    //float TasaCambio = consulta.getFloat("tasacambio");
                     fila.add(consulta.getFloat("tasacambio"));
-                    //float GM = consulta.getFloat("gm");
                     fila.add(consulta.getFloat("gm"));
-                    //int DiasCredito = consulta.getInt("diascredito");
                     fila.add(consulta.getInt("diascredito"));
-                    //java.sql.Date FechaVencimientoPago = consulta.getDate("fechavencimientopago");
                     fila.add(consulta.getDate("fechavencimientopago"));
-                    //String Status = consulta.getString("status");
                     fila.add(consulta.getString("status"));
-                    //String Notas = consulta.getString("notas");
                     fila.add(consulta.getString("notas"));
                     consulta.getString("capturo");
                     String FolioServicio = consulta.getString("folioservicio");
-                    //fila.add(cargarFoliosServicio(folioVenta));
                     if(FolioServicio == null) FolioServicio = "";
                     fila.add(FolioServicio);
                     String Factura = consulta.getString("factura");
-                    //fila.add(cargarFacturas(folioVenta));
                     if(Factura == null) Factura = "";
                     fila.add(Factura);
                     String FechaFactura = consulta.getString("fechafactura");
-                    //fila.add(cargarFechasFacturas(folioVenta));
                     if(FechaFactura == null) FechaFactura = "";
                     fila.add(FechaFactura);
                     String OrdenCompraGINSATEC = consulta.getString("ordencompraginsatec");
-                    //fila.add(cargarOrdenesCompraGINSATEC(folioVenta));
                     if(OrdenCompraGINSATEC == null) OrdenCompraGINSATEC = "";
                     fila.add(OrdenCompraGINSATEC);
                     String FechaOrdenGINSATEC = consulta.getString("fechaordenginsatec");
-                    //fila.add(cargarFechasOrdenesCompraGINSATEC(folioVenta));
                     if(FechaOrdenGINSATEC == null) FechaOrdenGINSATEC = "";
                     fila.add(FechaOrdenGINSATEC);
                     String Cotizacion = consulta.getString("cotizacion");
-                    //fila.add(cargarCotizaciones(folioVenta));
                     if(Cotizacion == null) Cotizacion = "";
                     fila.add(Cotizacion);
                     String OrdenCompra = consulta.getString("ordencompra");
-                    //fila.add(cargarOrdenesCompra(folioVenta));
                     if(OrdenCompra == null) OrdenCompra = "";
                     fila.add(OrdenCompra);
                     if(usuario == 0){
@@ -569,7 +758,7 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                     return new JTable(modeloMostrar);
                 }
             } catch (SQLException ex) {
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Ventas.class.getName()).log(Level.SEVERE, null, ex);
                 if(usuario != 0){
                     return new JTable(null);
                 }
@@ -580,10 +769,10 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
         }
     }
     
-    public Vector<String> cargarVendedores(){
-        Vector<String> vendedores = new Vector<String>();
+    public ArrayList<String> cargarVendedores(){
+        ArrayList<String> vendedores = new ArrayList<>();
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
 
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
@@ -599,17 +788,18 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                 comando.close();
                 c.close();
             }
-            catch(Exception ex){
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+            catch(SQLException ex){
+                Logger.getLogger(Ventas.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         return vendedores;
     }
     
-    public Vector<String> cargarClientes(){
-        Vector<String> clientes = new Vector<String>();
+    public ArrayList<String> cargarClientes(){
+        ArrayList<String> clientes = new ArrayList<>();
+        Set setClientes = new HashSet();
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
 
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
@@ -620,16 +810,60 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                 String sql = "select nombrecomercial from clientes order by nombrecomercial";
                 ResultSet consulta = comando.executeQuery(sql);
                 while(consulta.next()){
-                    clientes.add(consulta.getString("nombrecomercial"));
+                    setClientes.add(consulta.getString("nombrecomercial"));
+                }
+                clientes.addAll(new TreeSet(setClientes));
+                comando.close();
+                c.close();
+            }
+            catch(SQLException ex){
+                Logger.getLogger(Ventas.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        return clientes;
+    }
+    
+    public void cargarDetalleVenta(){
+        Connection c = ConectarDB();
+        Statement comando;
+        if( c == null ){
+            JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
+        }
+        else{
+            try{
+                comando = c.createStatement();
+                String sql = "select ventas.importe, detalleventa.* from ventas, detalleventa where ventas.folioventa=detalleventa.folioventa";
+                ResultSet consulta = comando.executeQuery(sql);
+                int folio;
+                ArrayList<Float> lista;
+                while(consulta.next()){
+                    lista = new ArrayList<>();
+                    folio = consulta.getInt("folioventa");
+                    lista.add(consulta.getFloat("importe"));
+                    lista.add(consulta.getFloat("automatizacion"));
+                    lista.add(consulta.getFloat("controlaccesos"));
+                    lista.add(consulta.getFloat("cctv"));
+                    lista.add(consulta.getFloat("deteccionincendios"));
+                    lista.add(consulta.getFloat("sistemasseguridad"));
+                    lista.add(consulta.getFloat("pacienteenfermera"));
+                    lista.add(consulta.getFloat("supresionincendios"));
+                    lista.add(consulta.getFloat("viaticos"));
+                    lista.add(consulta.getFloat("canalizacionescableados"));
+                    lista.add(consulta.getFloat("programacionpuestaenmarcha"));
+                    lista.add(consulta.getFloat("manoobra"));
+                    lista.add(consulta.getFloat("poliza"));
+                    lista.add(consulta.getFloat("refacciones"));
+                    lista.add(consulta.getFloat("reparaciones"));
+                    lista.add(consulta.getFloat("varios"));
+                    hstDetalleVenta.put(folio, lista);
                 }
                 comando.close();
                 c.close();
             }
-            catch(Exception ex){
-                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+            catch(SQLException ex){
+                Logger.getLogger(Ventas.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        return clientes;
     }
     
     public void actualizarTabla(JTable tabla){
@@ -642,9 +876,13 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     
     public void abrirArchivo(JTable tabla){
         int x = tabla.getSelectedRow(), y = tabla.getSelectedColumn();
-        if(y == 2 || y == 3){
+        if( y == 2 || 
+            y == 3 || 
+            y == 4 ||
+            y == 9 ||
+            y == 16 ){
             Connection c = ConectarDB();
-            Statement comando = null;
+            Statement comando;
             if( c == null ){
                 JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
             }
@@ -653,58 +891,56 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                     int folio = Integer.parseInt(String.valueOf(tabla.getValueAt(x, 0)));
                     comando = c.createStatement();
                     String sql = "";
-                    if(y == 2){
-                        sql = "select ruta from ordenescompra where folioventa=" + folio + " and ruta is not null";
+                    switch (y) {
+                        case 2:
+                            sql = "select ruta from ordenescompra where folioventa=" + folio + " and ruta is not null";
+                            break;
+                        case 3:
+                            sql = "select ruta from cotizaciones where folioventa=" + folio + " and ruta is not null";
+                            break;
+                        case 4:
+                            sql = "select ruta from foliosservicio where folioventa=" + folio + " and ruta is not null";
+                            break;
+                        case 9:
+                            sql = "select ruta from ordenescompraginsatec where folioventa=" + folio + " and ruta is not null";
+                            break;
+                        case 16:
+                            sql = "select ruta from facturas where folioventa=" + folio + " and ruta is not null";
+                            break;
+                        default:
+                            break;
                     }
-                    else if(y == 3){
-                        sql = "select ruta from cotizaciones where folioventa=" + folio + " and ruta is not null";
-                    }
-                    String path = "";
+                    String path;
                     ResultSet consulta = comando.executeQuery(sql);
                     while(consulta.next()){
                         path = consulta.getString("ruta");
                         if ((new File(path)).exists()) {
                             Process p = Runtime.getRuntime().exec("rundll32 url.dll,FileProtocolHandler " + path);
                             p.waitFor();
-
                         } else {
                             JOptionPane.showMessageDialog(null, "La ruta al archivo a cambiado o el archivo no existe");
                         }
                     }
                     comando.close();
                     c.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(Ventas.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (IOException ex) {
+                } catch (SQLException | InterruptedException | IOException ex) {
                     Logger.getLogger(Ventas.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+        }
+        else if(y == 7){
+            JTextArea area = new JTextArea(crearDetalle(Integer.parseInt(String.valueOf(tabla.getValueAt(x, 0)))));
+            area.setEditable(false);
+            JOptionPane.showMessageDialog(this, area, "Detalle de Venta", JOptionPane.INFORMATION_MESSAGE);
         }
     }
     
     public void actualizarFiltro(){
         buscarAnioFiltros();
-        if(     cmbFiltros.getSelectedItem().equals("Mes") || 
-                cmbFiltros.getSelectedItem().equals("Trimestre") ||
-                cmbFiltros.getSelectedItem().equals("Año") ||
-                cmbFiltros.getSelectedItem().equals("Vendedor-Mensual") ||
-                cmbFiltros.getSelectedItem().equals("Vendedor-Trimestral") ||
-                cmbFiltros.getSelectedItem().equals("Vendedor-Anual") ||
-                cmbFiltros.getSelectedItem().equals("Cliente-Mensual") ||
-                cmbFiltros.getSelectedItem().equals("Cliente-Anual") ||
-                cmbFiltros.getSelectedItem().equals("Cliente-Trimestral")){
-            modeloAnio = new DefaultComboBoxModel(filtrosAnio);
-            cmbOpcionesAnio.setModel(modeloAnio);
-        }
-        else if(cmbFiltros.getSelectedItem().equals("Cliente-Mensual") ||
-                cmbFiltros.getSelectedItem().equals("Cliente-Trimestral") ||
-                cmbFiltros.getSelectedItem().equals("Cliente-Anual") ||
-                cmbFiltros.getSelectedItem().equals("Cliente")){
-            modeloExtra = new DefaultComboBoxModel(filtrosCliente);
-            cmbOpcionesExtra.setModel(modeloExtra);
-        }
+        modeloAnio = new DefaultComboBoxModel(filtrosAnio.toArray());
+        cmbAnio.setModel(modeloAnio);
+        modeloCliente = new DefaultComboBoxModel(filtrosCliente.toArray());
+        cmbCliente.setModel(modeloCliente);
     }
 
     @Override
@@ -718,346 +954,71 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
                 new Thread(new Capturar(this, (int) tblTablaRegistrar.getValueAt(tblTablaRegistrar.getSelectedRow(), 0))).start();
             }
         }
-        else if(accion == cmbFiltros){
-            if(cmbFiltros.getSelectedItem().equals("Sin Filtro")){
-                tblTablaMostrar = new JTable(modeloMostrar);
-                actualizarTabla(tblTablaMostrar);
-                cmbOpcionesMes.setVisible(false);
-                cmbOpcionesAnio.setVisible(false);
-                cmbOpcionesExtra.setVisible(false);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Mes")){
-                modeloMes = new DefaultComboBoxModel(filtrosMes);
-                cmbOpcionesMes.setModel(modeloMes);
-                modeloAnio = new DefaultComboBoxModel(filtrosAnio);
-                cmbOpcionesAnio.setModel(modeloAnio);
-                cmbOpcionesMes.setVisible(true);
-                cmbOpcionesAnio.setVisible(true);
-                cmbOpcionesExtra.setVisible(false);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Trimestre")){
-                modeloMes = new DefaultComboBoxModel(filtrosTrimestre);
-                cmbOpcionesMes.setModel(modeloMes);
-                modeloAnio = new DefaultComboBoxModel(filtrosAnio);
-                cmbOpcionesAnio.setModel(modeloAnio);
-                cmbOpcionesMes.setVisible(true);
-                cmbOpcionesAnio.setVisible(true);
-                cmbOpcionesExtra.setVisible(false);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Año")){
-                modeloAnio = new DefaultComboBoxModel(filtrosAnio);
-                cmbOpcionesAnio.setModel(modeloAnio);
-                cmbOpcionesMes.setVisible(false);
-                cmbOpcionesAnio.setVisible(true);
-                cmbOpcionesExtra.setVisible(false);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor-Mensual")){
-                modeloMes = new DefaultComboBoxModel(filtrosMes);
-                cmbOpcionesMes.setModel(modeloMes);
-                modeloAnio = new DefaultComboBoxModel(filtrosAnio);
-                cmbOpcionesAnio.setModel(modeloAnio);
-                modeloExtra = new DefaultComboBoxModel(filtrosVendedor);
-                cmbOpcionesExtra.setModel(modeloExtra);
-                cmbOpcionesMes.setVisible(true);
-                cmbOpcionesAnio.setVisible(true);
-                cmbOpcionesExtra.setVisible(true);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor-Trimestral")){
-                modeloMes = new DefaultComboBoxModel(filtrosTrimestre);
-                cmbOpcionesMes.setModel(modeloMes);
-                modeloAnio = new DefaultComboBoxModel(filtrosAnio);
-                cmbOpcionesAnio.setModel(modeloAnio);
-                modeloExtra = new DefaultComboBoxModel(filtrosVendedor);
-                cmbOpcionesExtra.setModel(modeloExtra);
-                cmbOpcionesMes.setVisible(true);
-                cmbOpcionesAnio.setVisible(true);
-                cmbOpcionesExtra.setVisible(true);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor-Anual")){
-                modeloAnio = new DefaultComboBoxModel(filtrosAnio);
-                cmbOpcionesAnio.setModel(modeloAnio);
-                modeloExtra = new DefaultComboBoxModel(filtrosVendedor);
-                cmbOpcionesExtra.setModel(modeloExtra);
-                cmbOpcionesMes.setVisible(false);
-                cmbOpcionesAnio.setVisible(true);
-                cmbOpcionesExtra.setVisible(true);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor")){
-                modeloExtra = new DefaultComboBoxModel(filtrosVendedor);
-                cmbOpcionesExtra.setModel(modeloExtra);
-                cmbOpcionesMes.setVisible(false);
-                cmbOpcionesAnio.setVisible(false);
-                cmbOpcionesExtra.setVisible(true);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Mensual")){
-                modeloMes = new DefaultComboBoxModel(filtrosMes);
-                cmbOpcionesMes.setModel(modeloMes);
-                modeloAnio = new DefaultComboBoxModel(filtrosAnio);
-                cmbOpcionesAnio.setModel(modeloAnio);
-                modeloExtra = new DefaultComboBoxModel(filtrosCliente);
-                cmbOpcionesExtra.setModel(modeloExtra);
-                cmbOpcionesMes.setVisible(true);
-                cmbOpcionesAnio.setVisible(true);
-                cmbOpcionesExtra.setVisible(true);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Trimestral")){
-                modeloMes = new DefaultComboBoxModel(filtrosTrimestre);
-                cmbOpcionesMes.setModel(modeloMes);
-                modeloAnio = new DefaultComboBoxModel(filtrosAnio);
-                cmbOpcionesAnio.setModel(modeloAnio);
-                modeloExtra = new DefaultComboBoxModel(filtrosCliente);
-                cmbOpcionesExtra.setModel(modeloExtra);
-                cmbOpcionesMes.setVisible(true);
-                cmbOpcionesAnio.setVisible(true);
-                cmbOpcionesExtra.setVisible(true);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Anual")){
-                modeloAnio = new DefaultComboBoxModel(filtrosAnio);
-                cmbOpcionesAnio.setModel(modeloAnio);
-                modeloExtra = new DefaultComboBoxModel(filtrosCliente);
-                cmbOpcionesExtra.setModel(modeloExtra);
-                cmbOpcionesMes.setVisible(false);
-                cmbOpcionesAnio.setVisible(true);
-                cmbOpcionesExtra.setVisible(true);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente")){
-                modeloExtra = new DefaultComboBoxModel(filtrosCliente);
-                cmbOpcionesExtra.setModel(modeloExtra);
-                cmbOpcionesMes.setVisible(false);
-                cmbOpcionesAnio.setVisible(false);
-                cmbOpcionesExtra.setVisible(true);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Status")){
-                modeloExtra = new DefaultComboBoxModel(filtrosStatus);
-                cmbOpcionesExtra.setModel(modeloExtra);
-                cmbOpcionesMes.setVisible(false);
-                cmbOpcionesAnio.setVisible(false);
-                cmbOpcionesExtra.setVisible(true);
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Concepto de Venta")){
-                modeloExtra = new DefaultComboBoxModel(filtrosConcepto);
-                cmbOpcionesExtra.setModel(modeloExtra);
-                cmbOpcionesMes.setVisible(false);
-                cmbOpcionesAnio.setVisible(false);
-                cmbOpcionesExtra.setVisible(true);
-            }
-        }
-        else if(accion == cmbOpcionesMes){
-            if(cmbFiltros.getSelectedItem().equals("Mes")){
-                tblTablaMostrar = new JTable(modeloMostrar.Filtrar(cmbOpcionesMes.getSelectedIndex() + 1, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Trimestre")){
-                switch(cmbOpcionesMes.getSelectedIndex()){
-                    case 0:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(1, 3, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 1:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(4, 6, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 2:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(7, 9, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 3:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(10, 12, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                }
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor-Mensual")){
-                tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), cmbOpcionesMes.getSelectedIndex() + 1, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor-Trimestral")){
-                switch(cmbOpcionesMes.getSelectedIndex()){
-                    case 0:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 1, 3, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 1:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 4, 6, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 2:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 7, 9, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 3:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 10, 12, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                }
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Mensual")){
-                tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), cmbOpcionesMes.getSelectedIndex() + 1, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Trimestral")){
-                switch(cmbOpcionesMes.getSelectedIndex()){
-                    case 0:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 1, 3, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 1:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 4, 6, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 2:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 7, 9, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 3:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 10, 12, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                }
-            }
-            actualizarTabla(tblTablaMostrar);
+        else if(    chkMeses.contains((JCheckBox) accion) || 
+                    chkVendedores.contains((JCheckBox) accion) || 
+                    chkConceptos.contains((JCheckBox) accion) ||
+                    accion == cmbAnio ||
+                    accion == cmbStatus ||
+                    accion == cmbCliente){
             
-        }
-        else if(accion == cmbOpcionesAnio){
-            if(cmbFiltros.getSelectedItem().equals("Mes")){
-                tblTablaMostrar = new JTable(modeloMostrar.Filtrar(cmbOpcionesMes.getSelectedIndex() + 1, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Trimestre")){
-                switch(cmbOpcionesMes.getSelectedIndex()){
-                    case 0:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(1, 3, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 1:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(4, 6, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 2:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(7, 9, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 3:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(10, 12, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
+            if(accion == chkMeses.get(12)){
+                if(chkMeses.get(12).isSelected()){
+                    chkMeses.forEach((JCheckBox mes) -> {
+                        mes.setSelected(true);
+                    });
+                }
+                else{
+                    chkMeses.forEach((JCheckBox mes) -> {
+                        mes.setSelected(false);
+                    });
                 }
             }
-            else if(cmbFiltros.getSelectedItem().equals("Año")){
-                tblTablaMostrar = new JTable(modeloMostrar.Filtrar(Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor-Mensual")){
-                tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), cmbOpcionesMes.getSelectedIndex() + 1, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor-Trimestral")){
-                switch(cmbOpcionesMes.getSelectedIndex()){
-                    case 0:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 1, 3, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 1:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 4, 6, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 2:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 7, 9, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 3:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 10, 12, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
+            else if(accion == chkVendedores.get(6)){
+                if(chkVendedores.get(6).isSelected()){
+                    chkVendedores.forEach((JCheckBox vendedor) -> {
+                        vendedor.setSelected(true);
+                    });
+                }
+                else{
+                    chkVendedores.forEach((JCheckBox vendedor) -> {
+                        vendedor.setSelected(false);
+                    });
                 }
             }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor-Anual")){
-                tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Mensual")){
-                tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), cmbOpcionesMes.getSelectedIndex() + 1, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Trimestral")){
-                switch(cmbOpcionesMes.getSelectedIndex()){
-                    case 0:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 1, 3, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 1:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 4, 6, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 2:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 7, 9, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 3:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 10, 12, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
+            else if(accion == chkConceptos.get(15)){
+                if(chkConceptos.get(15).isSelected()){
+                    chkConceptos.forEach((JCheckBox concepto) -> {
+                        concepto.setSelected(true);
+                    });
+                }
+                else{
+                    chkConceptos.forEach((JCheckBox concepto) -> {
+                        concepto.setSelected(false);
+                    });
                 }
             }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Anual")){
-                tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            actualizarTabla(tblTablaMostrar);
-        }
-        else if(accion == cmbOpcionesExtra){
-            if(cmbFiltros.getSelectedItem().equals("Vendedor-Mensual")){
-                tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), cmbOpcionesMes.getSelectedIndex() + 1, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor-Trimestral")){
-                switch(cmbOpcionesMes.getSelectedIndex()){
-                    case 0:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 1, 3, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 1:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 4, 6, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 2:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 7, 9, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 3:
-                        tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 10, 12, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
+            
+            System.out.println("Filtrar");
+            ArrayList<String> mes = new ArrayList<>();
+            for(int i = 0; i < filtrosMeses.length - 1; i++){
+                if(chkMeses.get(i).isSelected()){
+                    mes.add(filtrosMeses[i]);
                 }
             }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor-Anual")){
-                tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem()), Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Vendedor")){
-                tblTablaMostrar = new JTable(modeloMostrar.Filtrar(String.valueOf(cmbOpcionesExtra.getSelectedItem())));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Mensual")){
-                tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), cmbOpcionesMes.getSelectedIndex() + 1, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Trimestral")){
-                switch(cmbOpcionesMes.getSelectedIndex()){
-                    case 0:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 1, 3, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 1:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 4, 6, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 2:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 7, 9, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
-                    case 3:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), 10, 12, Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-                        break;
+            ArrayList<Integer> concepto = new ArrayList<>();
+            for(int i = 0; i < filtrosConcepto.length - 1; i++){
+                if(chkConceptos.get(i).isSelected()){
+                    concepto.add(i);
                 }
             }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente-Anual")){
-                tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem()), Integer.parseInt(String.valueOf(cmbOpcionesAnio.getSelectedItem()))));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Cliente")){
-                tblTablaMostrar = new JTable(modeloMostrar.FiltrarCliente(String.valueOf(cmbOpcionesExtra.getSelectedItem())));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Status")){
-                tblTablaMostrar = new JTable(modeloMostrar.FiltrarStatus(String.valueOf(cmbOpcionesExtra.getSelectedItem())));
-            }
-            else if(cmbFiltros.getSelectedItem().equals("Concepto de Venta")){
-                //"Sistemas", "Servicio", "Poliza", "Refacciones", "Reparaciones"
-                switch(cmbOpcionesExtra.getSelectedIndex()){
-                    case 0:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Sistemas"));
-                        break;
-                    case 1:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Servicio", "Administración"));
-                        break;
-                    case 2:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Servicio", "Ventas"));
-                        break;
-                    case 3:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Poliza", "Administración"));
-                        break;
-                    case 4:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Poliza", "Ventas"));
-                        break;
-                    case 5:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Refacciones", "Administración"));
-                        break;
-                    case 6:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Refacciones", "Ventas"));
-                        break;
-                    case 7:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Reparaciones", "Administración"));
-                        break;
-                    case 8:
-                        tblTablaMostrar = new JTable(modeloMostrar.FiltrarConcepto("Reparaciones", "Ventas"));
-                        break;
+            ArrayList<String> vendedor = new ArrayList<>();
+            for(int i = 0; i < filtrosVendedor.size() - 1; i++){
+                if(chkVendedores.get(i).isSelected()){
+                    vendedor.add(filtrosVendedor.get(i));
                 }
             }
+            System.out.println("Size: " + modeloMostrar.datos.size());
+            tblTablaMostrar = new JTable(modeloMostrar.Filtrar(mes, concepto, hstDetalleVenta, String.valueOf(cmbAnio.getSelectedItem()), String.valueOf(cmbStatus.getSelectedItem()), String.valueOf(cmbCliente.getSelectedItem()), vendedor));
             actualizarTabla(tblTablaMostrar);
         }
     }
@@ -1065,11 +1026,7 @@ public class Ventas extends JFrame implements ActionListener, Runnable{
     @Override
     public void run() {
         while(true){
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(Capturar.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            /*Nothing*/
         }
     }
 

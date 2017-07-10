@@ -5,7 +5,6 @@
  */
 package ventas;
 
-import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
 import java.util.logging.*;
@@ -15,7 +14,6 @@ public class Login extends JFrame implements ActionListener{
 
     private int usuario;
     private String rol;
-    boolean servidor = false;
     
     JLabel lblTitulo = new JLabel("Login");
     JLabel lblUser = new JLabel("Usuario:");
@@ -46,15 +44,13 @@ public class Login extends JFrame implements ActionListener{
         this.add(btnEntrar);
         
     	this.setResizable(false);
+        inicializarListener();
         
-        btnEntrar.addActionListener(this);
-        txtPass.addActionListener(this);
         this.addWindowListener(new WindowAdapter(){
+            @Override
             public void windowClosing(WindowEvent e)
             {
-                if(servidor){
-                    new Servidor().cerrarServidor();
-                }
+                new Servidor().cerrarServidor();
             }
         });
         
@@ -62,12 +58,16 @@ public class Login extends JFrame implements ActionListener{
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
     
+    private void inicializarListener(){
+        btnEntrar.addActionListener(this);
+        txtPass.addActionListener(this);
+    }
+    
     public static void main(String[] args) {
-        //GenerarPrueba x = new GenerarPrueba();
-        //x.nuevoRegistro();
         Login inicio = new Login();
     }
     
+    @Override
     public void actionPerformed(ActionEvent ae) {
         Object accion = ae.getSource();
         if( accion == btnEntrar ){
@@ -77,10 +77,8 @@ public class Login extends JFrame implements ActionListener{
             else{
                 if(Logear(txtUser.getText(), txtPass.getText())){
                     
-                    SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                            new Thread(new WaitWindow(usuario, rol)).start();
-                        }
+                    SwingUtilities.invokeLater(() -> {
+                        new Thread(new WaitWindow(usuario, rol)).start();
                     });
                     
                     this.dispose();
@@ -94,10 +92,8 @@ public class Login extends JFrame implements ActionListener{
             else{
                 if(Logear(txtUser.getText(), txtPass.getText())){
                     
-                    SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                            new Thread(new WaitWindow(usuario, rol)).start();
-                        }
+                    SwingUtilities.invokeLater(() -> {
+                        new Thread(new WaitWindow(usuario, rol)).start();
                     });
                     
                     this.dispose();
@@ -107,23 +103,26 @@ public class Login extends JFrame implements ActionListener{
     }
     
     public Connection ConectarDB(){
-        new Servidor().arrancarServidor();
-        servidor = true;
+        Servidor s = new Servidor();
+        s.arrancarServidor();
+        String ip = s.obtenerIP();
+        System.out.println("IP obtenida: " + ip);
         Connection c = null;
         try {
-            Class.forName("org.postgresql.Driver"); //jdbc:postgresql://localhost:5432/sistemabasedatos
-            //c = DriverManager.getConnection("jdbc:postgresql://localhost:3389/VentasDB", "usuario", "Sersitec886");
-            c = DriverManager.getConnection("jdbc:postgresql://localhost:3389/VentasDB", "usuario", "Sersitec886");
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println(e.getClass().getName()+": "+e.getMessage());
+            Class.forName("org.postgresql.Driver");
+            c = DriverManager.getConnection("jdbc:postgresql://" + ip + ":3389/VentasDB", "usuario", "Sersitec886");
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+            if(s.reiniciarServidor()){
+                c = ConectarDB();
+            }
         }
         return c;
     }
     
     public boolean Logear(String user, String password){
         Connection c = ConectarDB();
-        Statement comando = null;
+        Statement comando;
         if( c == null ){
             JOptionPane.showMessageDialog(null, "No se puede acceder a la base de datos");
             return false;
